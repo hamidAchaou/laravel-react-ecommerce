@@ -1,3 +1,4 @@
+import Navbar from '@/Components/App/navbar';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 
