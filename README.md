@@ -61,3 +61,8 @@ plugins: [require("daisyui")],
 ```bash
  composer require spatie/laravel-permission
 ```    
+12. create enum Roles and Permissions 
+```bash
+php artisan make:enum RolesEnum
+php artisan make:enum PermissionsEnum
+```
