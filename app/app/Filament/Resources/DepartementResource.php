@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\RolesEnum;
 use App\Filament\Resources\DepartementResource\Pages;
 use App\Filament\Resources\DepartementResource\RelationManagers;
+use App\Filament\Resources\DepartementResource\RelationManagers\CatigoriesRelationManager;
 use App\Models\Departement;
 use Filament\Facades\Filament;
 use Illuminate\Support\Str;
@@ -69,7 +70,7 @@ class DepartementResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            CatigoriesRelationManager::class,
         ];
     }
 

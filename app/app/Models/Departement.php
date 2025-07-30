@@ -11,4 +11,9 @@ class Departement extends Model
         'slug',
         'active',
     ];
+
+    public function categories()
+    {
+        return $this->hasMany(Categories::class);
+    }
 }
