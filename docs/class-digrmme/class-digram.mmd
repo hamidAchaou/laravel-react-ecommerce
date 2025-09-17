@@ -1,0 +1,150 @@
+classDiagram
+    %% Spatie Permission System
+    class User {
+        +id: UUID
+        +name: string
+        +email: string
+        +password: string
+    }
+
+    class Role {
+        +id: int
+        +name: string
+        +guard_name: string
+    }
+
+    class Permission {
+        +id: int
+        +name: string
+        +guard_name: string
+    }
+
+    class ModelHasRoles {
+        +role_id: int
+        +model_type: string
+        +model_id: UUID
+    }
+
+    class ModelHasPermissions {
+        +permission_id: int
+        +model_type: string
+        +model_id: UUID
+    }
+
+    class RoleHasPermissions {
+        +role_id: int
+        +permission_id: int
+    }
+
+    User --> "0..*" Role : via ModelHasRoles
+    User --> "0..*" Permission : via ModelHasPermissions
+    Role --> "0..*" Permission : via RoleHasPermissions
+
+    %% Clients
+    class Client {
+        +id: UUID
+        +user_id: UUID
+        +phone: string
+        +address: string
+        +city_id: int
+        +country_id: int
+    }
+
+    Client --> "1" User
+    Client --> "1" City
+    Client --> "1" Country
+
+    %% Cart
+    class Cart {
+        +id: UUID
+        +client_id: UUID
+        +created_at: datetime
+        +addItem()
+        +removeItem()
+        +updateQuantity()
+        +checkout()
+    }
+
+    class CartItem {
+        +id: UUID
+        +cart_id: UUID
+        +product_id: UUID
+        +quantity: int
+    }
+
+    Cart --> "1" Client
+    Cart --> "0..*" CartItem
+    CartItem --> "1" Product
+
+    %% Category & Product
+    class Category {
+        +id: int
+        +name: string
+        +parent_id: int
+        +type: enum("product", "city", "country", "payment")
+    }
+
+    class Product {
+        +id: UUID
+        +title: string
+        +description: text
+        +price: decimal
+        +stock: int
+        +category_id: int
+    }
+
+    Product --> "1" Category
+    Category --> "0..*" Category : subcategories
+
+    %% Orders & Payments
+    class Order {
+        +id: UUID
+        +client_id: UUID
+        +status: enum("pending", "paid", "shipped", "completed", "cancelled")
+        +total_amount: decimal
+        +payment_id: UUID
+    }
+
+    class OrderItem {
+        +id: UUID
+        +order_id: UUID
+        +product_id: UUID
+        +quantity: int
+        +price: decimal
+    }
+
+    class Payment {
+        +id: UUID
+        +method: string
+        +status: enum("pending", "completed", "failed")
+        +amount: decimal
+        +transaction_id: string
+    }
+
+    Order --> "1" Client
+    Order --> "1" Payment
+    Order --> "1..*" OrderItem
+    OrderItem --> "1" Product
+
+    %% Location Entities
+    class Country {
+        +id: int
+        +name: string
+        +code: string
+    }
+
+    class City {
+        +id: int
+        +name: string
+        +country_id: int
+    }
+
+    City --> "1" Country
+
+    %% Settings
+    class Setting {
+        +id: int
+        +key: string
+        +value: text
+        +group: string
+    }

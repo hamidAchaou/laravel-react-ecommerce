@@ -1,0 +1,48 @@
+@startuml
+%% =====================
+%% Soukify Use Case Diagram
+%% =====================
+
+actor "Client" as client
+actor "Admin" as admin
+actor "Stripe" as stripe
+
+%% =====================
+%% Client Use Cases
+%% =====================
+client --> (Register Account)
+client --> (Login)
+client --> (Update Profile)
+client --> (Browse Categories)
+client --> (View Products)
+client --> (Add to Cart)
+client --> (Remove from Cart)
+client --> (Checkout)
+client --> (View Orders)
+client --> (Make Payment)
+
+%% =====================
+%% Admin Use Cases
+%% =====================
+admin --> (Login)
+admin --> (Manage Categories)
+admin --> (Manage SubCategories)
+admin --> (Manage Products)
+admin --> (View Orders)
+admin --> (Manage Users)
+admin --> (Generate Reports)
+
+%% =====================
+%% Stripe Integration
+%% =====================
+(Make Payment) --> stripe : "Process Payment"
+stripe --> (Confirm Payment)
+
+%% =====================
+%% Includes / Extensions
+%% =====================
+(Checkout) --> (Create Order)
+(Checkout) --> (Apply Payment)
+(Make Payment) .> (Refund Payment) : <<extend>>
+
+@enduml
