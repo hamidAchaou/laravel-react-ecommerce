@@ -1,10 +1,37 @@
+/* input.css (or where you put your Tailwind imports) */
+
 @import "tailwindcss";
 
+/* |--------------------------------------------------------------------------
+| MODERN E-COMMERCE COLOR THEME ROOT (Deep Dark / High Contrast)
+|--------------------------------------------------------------------------
+| This palette uses a deep charcoal background with soft white text 
+| and a sharp, high-visibility coral/orange accent for conversions.
+*/
 @theme {
-  --color-brand-primary: #3B82F6;   /* blue-500 */
-  --color-brand-secondary: #4F46E5; /* indigo-600 */
-  --color-brand-accent: #FACC15;    /* yellow-400 */
-  --color-brand-accent-hover: #FBBF24;
-  --color-brand-dark: #111827;      /* gray-900 */
-  --color-brand-light: #ffffff;
+    /* BRAND COLORS (The New Modern Palette) */
+    --color-brand-primary: #1E293B;      /* Slate-800: Deep Charcoal / Primary Surface Color */
+    --color-brand-secondary: #475569;    /* Slate-600: Secondary, Muted elements */
+    --color-brand-accent: #FF5733;       /* VIBRANT CORAL: High-Conversion CTA color */
+    --color-brand-accent-hover: #E54D2B; /* Darker Coral for hover state */
+    --color-brand-dark: #0F172A;         /* Slate-900: Main Page Background (Deepest color) */
+    --color-brand-light: #F8FAFC;        /* Soft White: Main Text/Icon Color */
+    
+    /* SEMANTIC E-COMMERCE ROLES */
+    
+    /* Actions & Buttons (Primary CTA) */
+    --color-primary-button: var(--color-brand-accent);
+    --color-primary-button-hover: var(--color-brand-accent-hover);
+
+    /* Backgrounds */
+    --color-background-base: var(--color-brand-dark);     /* Deep background for the whole page */
+    --color-background-surface: var(--color-brand-primary); /* Cards, sections, modals (Slightly lighter than base) */
+
+    /* Text (Designed to be legible on the dark background) */
+    --color-text-primary: var(--color-brand-light);      /* Bright, soft white for headlines */
+    --color-text-secondary: #CBD5E1; /* Slate-300 for descriptions, prices, subtle text */
+
+    /* Status/Feedback */
+    --color-status-success: #10B981; /* Success (Green) */
+    --color-status-error: #EF4444;   /* Error/Alert (Red) */
 }

@@ -12,32 +12,38 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-brand-primary text-white shadow-md">
+    <nav className="bg-[var(--color-brand-primary)] text-[var(--color-brand-light)] shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+        {/* Logo */}
         <Link to="/" className="text-2xl font-bold">
           MyStore
         </Link>
 
+        {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center gap-6 font-medium">
           <li>
             <NavLink
               to="/"
               className={({ isActive }) =>
-                isActive ? "underline underline-offset-4" : ""
+                isActive
+                  ? "underline underline-offset-4 text-[var(--color-brand-accent)]"
+                  : "hover:text-[var(--color-brand-accent-hover)] transition"
               }
             >
               Home
             </NavLink>
           </li>
 
-          {/* Conditional links */}
+          {/* Client links */}
           {user?.role === "client" && (
             <>
               <li>
                 <NavLink
                   to="/cart"
                   className={({ isActive }) =>
-                    isActive ? "underline underline-offset-4" : ""
+                    isActive
+                      ? "underline underline-offset-4 text-[var(--color-brand-accent)]"
+                      : "hover:text-[var(--color-brand-accent-hover)] transition"
                   }
                 >
                   Cart
@@ -47,7 +53,9 @@ export default function Navbar() {
                 <NavLink
                   to="/checkout"
                   className={({ isActive }) =>
-                    isActive ? "underline underline-offset-4" : ""
+                    isActive
+                      ? "underline underline-offset-4 text-[var(--color-brand-accent)]"
+                      : "hover:text-[var(--color-brand-accent-hover)] transition"
                   }
                 >
                   Checkout
@@ -56,12 +64,15 @@ export default function Navbar() {
             </>
           )}
 
+          {/* Admin links */}
           {user?.role === "admin" && (
             <li>
               <NavLink
                 to="/admin/dashboard"
                 className={({ isActive }) =>
-                  isActive ? "underline underline-offset-4" : ""
+                  isActive
+                    ? "underline underline-offset-4 text-[var(--color-brand-accent)]"
+                    : "hover:text-[var(--color-brand-accent-hover)] transition"
                 }
               >
                 Dashboard
@@ -69,20 +80,31 @@ export default function Navbar() {
             </li>
           )}
 
+          {/* Auth Links */}
           {!user ? (
             <>
               <li>
-                <NavLink to="/login">Login</NavLink>
+                <NavLink
+                  to="/login"
+                  className="hover:text-[var(--color-brand-accent-hover)] transition"
+                >
+                  Login
+                </NavLink>
               </li>
               <li>
-                <NavLink to="/register">Register</NavLink>
+                <NavLink
+                  to="/register"
+                  className="hover:text-[var(--color-brand-accent-hover)] transition"
+                >
+                  Register
+                </NavLink>
               </li>
             </>
           ) : (
             <li>
               <button
                 onClick={handleLogout}
-                className="bg-brand-accent text-brand-dark px-3 py-1 rounded-lg hover:bg-brand-accent-hover transition"
+                className="bg-[var(--color-primary-button)] text-[var(--color-brand-dark)] px-3 py-1 rounded-lg hover:bg-[var(--color-primary-button-hover)] transition"
               >
                 Logout
               </button>
@@ -92,7 +114,7 @@ export default function Navbar() {
 
         {/* Mobile menu placeholder */}
         <div className="md:hidden">
-          {/* Add hamburger menu for mobile if needed */}
+          {/* TODO: Add hamburger menu */}
         </div>
       </div>
     </nav>
