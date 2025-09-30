@@ -27,10 +27,6 @@ function App() {
         {/* Public routes */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
-        </Route>
-
-        {/* Auth routes */}
-        <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>

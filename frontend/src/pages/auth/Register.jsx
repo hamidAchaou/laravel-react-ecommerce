@@ -18,7 +18,7 @@ export default function Register() {
 
     // TODO: Call API to register
     if (name && email && password) {
-      login({ name, email, role: "client" }); // simulate registration
+      login({ name, email, role: "client" });
       navigate("/"); // redirect to home
     } else {
       setError("Please fill all fields");

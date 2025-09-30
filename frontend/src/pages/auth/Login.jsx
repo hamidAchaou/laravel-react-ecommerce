@@ -1,7 +1,7 @@
-// Login.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { api, sanctum } from "../../api/axios.js";
 
 export default function Login() {
   const { login } = useAuth();
@@ -11,19 +11,23 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    // TODO: Call API here
-    if (email === "admin@example.com" && password === "123456") {
-      login({ name: "Admin", email, role: "admin" });
-      navigate("/"); // Redirect to home or dashboard
-    } else if (email && password) {
-      login({ name: "User", email, role: "client" });
-      navigate("/");
-    } else {
-      setError("Invalid credentials");
+    try {
+      // Step 1: Get CSRF cookie
+      await sanctum.get("/sanctum/csrf-cookie");
+
+      // Step 2: Post login credentials
+      const response = await api.post("/auth/login", { email, password });
+
+      const { user } = response.data;
+      login(user); // save user in context
+      navigate("/"); // redirect
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An error occurred during login. Please try again.");
     }
   };
 
@@ -38,7 +42,7 @@ export default function Login() {
           <div className="mb-4 text-red-600 font-medium text-center">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <input
             type="email"
             placeholder="Email"
@@ -67,7 +71,10 @@ export default function Login() {
 
         <p className="mt-4 text-center text-gray-500">
           Don’t have an account?{" "}
-          <Link to="/register" className="text-brand-accent hover:text-brand-accent-hover font-medium">
+          <Link
+            to="/register"
+            className="text-brand-accent hover:text-brand-accent-hover font-medium"
+          >
             Register
           </Link>
         </p>
