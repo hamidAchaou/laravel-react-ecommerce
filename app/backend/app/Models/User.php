@@ -6,12 +6,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -35,33 +34,15 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * Get the attributes that should be cast.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-    ];
-    public function cart()
+    protected function casts(): array
     {
-        return $this->hasOne(Cart::class, 'client_id', 'id');
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
-
-    /**
-     * Get the client record associated with the user
-     */
-    public function client()
-    {
-        return $this->hasOne(Client::class, 'user_id', 'id');
-    }
-
-    // protected static function booted()
-    // {
-    //     static::created(function ($user) {
-    //         app(\App\Repositories\Frontend\ClientRepository::class)->create([
-    //             'user_id' => $user->id,
-    //         ]);
-    //     });
-    // }
 }

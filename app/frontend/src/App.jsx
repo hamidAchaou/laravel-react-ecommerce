@@ -30,7 +30,7 @@ function App() {
         </Route>
 
         {/* Auth routes */}
-        <Route element={<AuthLayout />}>
+        <Route element={<MainLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>

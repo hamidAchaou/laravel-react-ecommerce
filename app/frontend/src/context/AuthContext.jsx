@@ -1,44 +1,95 @@
-// frontend/src/context/AuthContext.jsx
+// app/frontend/src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
+import api from "../api/axios"; // Axios instance
 
-// 1. Create context
 const AuthContext = createContext(null);
 
-// 2. Hook for using auth
+// Custom hook to use auth context
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-// 3. Provider
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // null = not logged in
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);          // Logged-in user
+  const [loading, setLoading] = useState(true);    // App loading state (fetching user)
+  const [authenticating, setAuthenticating] = useState(false); // Login/register in progress
+  const [error, setError] = useState("");          // Last auth error
 
-  // Simulate fetching user session (replace with API call later)
+  // Fetch current user on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const fetchUser = async () => {
+      try {
+        await api.get("/sanctum/csrf-cookie");    // CSRF token
+        const res = await api.get("/api/user");   // Fetch user
+        setUser(res.data);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+  // Login function
+  const login = async (email, password) => {
+    setAuthenticating(true);
+    setError("");
+    try {
+      await api.get("/sanctum/csrf-cookie");     // CSRF cookie
+      await api.post("/login", { email, password });
+      const res = await api.get("/api/user");    // Fetch logged-in user
+      setUser(res.data);
+      return { success: true };
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed");
+      return { success: false, message: err.response?.data?.message || "Login failed" };
+    } finally {
+      setAuthenticating(false);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
+  // Register function
+  const register = async (name, email, password, password_confirmation) => {
+    setAuthenticating(true);
+    setError("");
+    try {
+      await api.get("/sanctum/csrf-cookie");
+      await api.post("/register", { name, email, password, password_confirmation });
+      const res = await api.get("/api/user");
+      setUser(res.data);
+      return { success: true };
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
+      return { success: false, message: err.response?.data?.message || "Registration failed" };
+    } finally {
+      setAuthenticating(false);
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    setAuthenticating(true);
+    try {
+      await api.post("/logout");
+      setUser(null);
+    } catch (err) {
+      console.warn("Logout failed", err);
+    } finally {
+      setAuthenticating(false);
+    }
   };
 
   const value = {
     user,
     login,
+    register,
     logout,
-    loading,
+    loading,            // true while fetching current user
+    authenticating,     // true while login/register/logout
     isAuthenticated: !!user,
+    error,
+    setError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

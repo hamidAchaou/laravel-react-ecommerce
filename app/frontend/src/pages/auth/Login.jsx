@@ -1,7 +1,6 @@
-// Login.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext.jsx";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
   const { login } = useAuth();
@@ -10,20 +9,20 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    // TODO: Call API here
-    if (email === "admin@example.com" && password === "123456") {
-      login({ name: "Admin", email, role: "admin" });
-      navigate("/"); // Redirect to home or dashboard
-    } else if (email && password) {
-      login({ name: "User", email, role: "client" });
-      navigate("/");
+    const res = await login(email, password);
+    setLoading(false);
+
+    if (res.success) {
+      navigate("/dashboard"); // redirect after login
     } else {
-      setError("Invalid credentials");
+      setError(res.message);
     }
   };
 
@@ -59,15 +58,19 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-3 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-secondary transition"
+            disabled={loading}
+            className="w-full py-3 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-secondary transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-gray-500">
           Don’t have an account?{" "}
-          <Link to="/register" className="text-brand-accent hover:text-brand-accent-hover font-medium">
+          <Link
+            to="/register"
+            className="text-brand-accent hover:text-brand-accent-hover font-medium"
+          >
             Register
           </Link>
         </p>
