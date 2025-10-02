@@ -15,16 +15,23 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
+  
     const res = await login(email, password);
     setLoading(false);
-
+  
     if (res.success) {
-      navigate("/dashboard"); // redirect after login
+      const userRole = res.user?.role; // make sure your backend returns the role
+  
+      if (userRole === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } else {
       setError(res.message);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-light px-4">

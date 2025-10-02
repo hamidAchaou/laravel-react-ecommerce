@@ -1,26 +1,25 @@
 // app/frontend/src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
-import api from "../api/axios"; // Axios instance
+import api from "../api/axios";
 
 const AuthContext = createContext(null);
 
-// Custom hook to use auth context
 export function useAuth() {
   return useContext(AuthContext);
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);          // Logged-in user
-  const [loading, setLoading] = useState(true);    // App loading state (fetching user)
-  const [authenticating, setAuthenticating] = useState(false); // Login/register in progress
-  const [error, setError] = useState("");          // Last auth error
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authenticating, setAuthenticating] = useState(false);
+  const [error, setError] = useState("");
 
   // Fetch current user on mount
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        await api.get("/sanctum/csrf-cookie");    // CSRF token
-        const res = await api.get("/api/user");   // Fetch user
+        await ensureCsrfToken();
+        const res = await api.get("/api/user");
         setUser(res.data);
       } catch {
         setUser(null);
@@ -31,37 +30,59 @@ export function AuthProvider({ children }) {
     fetchUser();
   }, []);
 
+  // Ensure CSRF token is set
+  const ensureCsrfToken = async () => {
+    try {
+      await api.get("/sanctum/csrf-cookie");
+    } catch (error) {
+      console.error("CSRF token fetch failed:", error);
+    }
+  };
+
   // Login function
   const login = async (email, password) => {
     setAuthenticating(true);
     setError("");
     try {
-      await api.get("/sanctum/csrf-cookie");     // CSRF cookie
-      await api.post("/login", { email, password });
-      const res = await api.get("/api/user");    // Fetch logged-in user
-      setUser(res.data);
+      // Get CSRF token first
+      await ensureCsrfToken();
+      
+      // Then make login request
+      const response = await api.post("/login", { email, password });
+      console.log("Login response:", response);
+      
+      // Fetch user data
+      const userRes = await api.get("/api/user");
+      setUser(userRes.data);
+      
       return { success: true };
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
-      return { success: false, message: err.response?.data?.message || "Login failed" };
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          "Login failed";
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
       setAuthenticating(false);
     }
   };
 
-  // Register function
+  // Register function (similar fix)
   const register = async (name, email, password, password_confirmation) => {
     setAuthenticating(true);
     setError("");
     try {
-      await api.get("/sanctum/csrf-cookie");
+      await ensureCsrfToken();
       await api.post("/register", { name, email, password, password_confirmation });
-      const res = await api.get("/api/user");
-      setUser(res.data);
+      const userRes = await api.get("/api/user");
+      setUser(userRes.data);
       return { success: true };
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
-      return { success: false, message: err.response?.data?.message || "Registration failed" };
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          "Registration failed";
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
       setAuthenticating(false);
     }
@@ -85,12 +106,16 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
-    loading,            // true while fetching current user
-    authenticating,     // true while login/register/logout
+    loading,
+    authenticating,
     isAuthenticated: !!user,
     error,
     setError,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

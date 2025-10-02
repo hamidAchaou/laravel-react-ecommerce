@@ -6,12 +6,17 @@ return [
         'sanctum/csrf-cookie',
         'login',
         'logout',
-        'register'
+        'register',
+        'forgot-password',
+        'reset-password',
+        'email/verification-notification',
+        'user',
     ],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173'], // نفس frontend URL
+    'allowed_origins' => ['http://localhost:5173'],
+
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
