@@ -20,14 +20,14 @@ export default function Login() {
     setLoading(false);
   
     if (res.success) {
-      const userRole = res.user?.role; // make sure your backend returns the role
-  
+      const userRole = res.user?.role;
       if (userRole === "admin") {
         navigate("/admin");
       } else {
         navigate("/");
       }
-    } else {
+    }
+       else {
       setError(res.message);
     }
   };

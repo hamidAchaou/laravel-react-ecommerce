@@ -43,29 +43,32 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setAuthenticating(true);
     setError("");
+  
     try {
-      // Get CSRF token first
       await ensureCsrfToken();
-      
-      // Then make login request
       const response = await api.post("/login", { email, password });
-      console.log("Login response:", response);
-      
-      // Fetch user data
-      const userRes = await api.get("/api/user");
-      setUser(userRes.data);
-      
-      return { success: true };
+  
+      const { user, token } = response.data;
+      setUser(user);
+      localStorage.setItem("auth_token", token);
+  
+      return { success: true, user };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          "Login failed";
+      let errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Login failed";
+  
+      if (errorMessage === "These credentials do not match our records.") {
+        errorMessage = "Invalid email or password.";
+      }
+  
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
       setAuthenticating(false);
     }
-  };
+  };  
 
   // Register function (similar fix)
   const register = async (name, email, password, password_confirmation) => {
