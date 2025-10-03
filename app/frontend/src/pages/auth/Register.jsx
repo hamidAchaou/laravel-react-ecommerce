@@ -1,27 +1,34 @@
-// Register.jsx
+// src/pages/auth/Register.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext.jsx";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Register() {
-  const { login } = useAuth();
+  const { register, error, setError, authenticating } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // TODO: Call API to register
-    if (name && email && password) {
-      login({ name, email, role: "client" }); // simulate registration
-      navigate("/"); // redirect to home
+    const res = await register(name, email, password, passwordConfirmation);
+
+    if (res.success) {
+      const userRole = res.user?.role;
+      if (userRole === "admin") {
+        navigate("/admin");
+      } else if (userRole === "seller") {
+        navigate("/seller");
+      } else {
+        navigate("/");
+      }
     } else {
-      setError("Please fill all fields");
+      setError(res.message);
     }
   };
 
@@ -64,17 +71,34 @@ export default function Register() {
             required
           />
 
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={passwordConfirmation}
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            required
+          />
+
           <button
             type="submit"
-            className="w-full py-3 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-secondary transition"
+            disabled={authenticating}
+            className={`w-full py-3 rounded-lg text-white font-semibold transition ${
+              authenticating
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-brand-primary hover:bg-brand-secondary"
+            }`}
           >
-            Register
+            {authenticating ? "Registering..." : "Register"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-gray-500">
           Already have an account?{" "}
-          <Link to="/login" className="text-brand-accent hover:text-brand-accent-hover font-medium">
+          <Link
+            to="/login"
+            className="text-brand-accent hover:text-brand-accent-hover font-medium"
+          >
             Login
           </Link>
         </p>

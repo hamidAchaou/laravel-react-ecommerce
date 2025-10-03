@@ -43,47 +43,59 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setAuthenticating(true);
     setError("");
-  
+
     try {
       await ensureCsrfToken();
       const response = await api.post("/login", { email, password });
-  
+
       const { user, token } = response.data;
       setUser(user);
       localStorage.setItem("auth_token", token);
-  
+
       return { success: true, user };
     } catch (err) {
       let errorMessage =
         err.response?.data?.message ||
         err.response?.data?.error ||
         "Login failed";
-  
+
       if (errorMessage === "These credentials do not match our records.") {
         errorMessage = "Invalid email or password.";
       }
-  
+
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
       setAuthenticating(false);
     }
-  };  
+  };
 
-  // Register function (similar fix)
   const register = async (name, email, password, password_confirmation) => {
     setAuthenticating(true);
     setError("");
+
     try {
       await ensureCsrfToken();
-      await api.post("/register", { name, email, password, password_confirmation });
-      const userRes = await api.get("/api/user");
-      setUser(userRes.data);
-      return { success: true };
+      const response = await api.post("/register", {
+        name,
+        email,
+        password,
+        password_confirmation,
+      });
+
+      // Laravel registers & logs in user automatically
+      const { user, token } = response.data;
+
+      setUser(user);
+      localStorage.setItem("auth_token", token);
+
+      return { success: true, user };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          "Registration failed";
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Registration failed";
+
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -116,9 +128,5 @@ export function AuthProvider({ children }) {
     setError,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
