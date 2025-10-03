@@ -117,6 +117,7 @@ abstract class BaseRepository
     ): Builder {
         $query = $this->model->with($with);
 
+        // 🔍 Search
         if (!empty($filters['search']) && !empty($searchableFields)) {
             $keyword = $filters['search'];
             $query->where(function (Builder $q) use ($keyword, $searchableFields) {
@@ -126,8 +127,18 @@ abstract class BaseRepository
             });
         }
 
+        // 🔎 Field filters
         foreach ($filters as $field => $value) {
-            if ($field !== 'search' && $value !== null) {
+            if ($value === null || $field === 'search') {
+                continue;
+            }
+
+            // Custom price range filter
+            if ($field === 'min_price') {
+                $query->where('price', '>=', $value);
+            } elseif ($field === 'max_price') {
+                $query->where('price', '<=', $value);
+            } else {
                 $query->where($field, $value);
             }
         }

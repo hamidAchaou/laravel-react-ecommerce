@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Repositories\ClientRepository;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -59,7 +61,7 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::created(function ($user) {
-            app(\App\Repositories\Frontend\ClientRepository::class)->create([
+            app(ClientRepository::class)->create([
                 'user_id' => $user->id,
             ]);
         });
