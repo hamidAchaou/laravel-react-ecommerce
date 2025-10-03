@@ -11,7 +11,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens ,HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -35,15 +35,33 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+    public function cart()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasOne(Cart::class, 'client_id', 'id');
+    }
+
+    /**
+     * Get the client record associated with the user
+     */
+    public function client()
+    {
+        return $this->hasOne(Client::class, 'user_id', 'id');
+    }
+
+    protected static function booted()
+    {
+        static::created(function ($user) {
+            app(\App\Repositories\Frontend\ClientRepository::class)->create([
+                'user_id' => $user->id,
+            ]);
+        });
     }
 }
