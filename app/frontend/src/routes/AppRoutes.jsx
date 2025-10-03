@@ -1,86 +1,76 @@
+// src/routes/AppRoutes.jsx
 import React, { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import RoleBasedRoute from "./RoleBasedRoute";
 
-// Lazy load
-const Home = lazy(() => import("../pages/client/Home"));
-const Shop = lazy(() => import("../pages/client/Shop"));
-const Cart = lazy(() => import("../pages/client/Cart"));
-const Profile = lazy(() => import("../pages/client/Profile"));
+// Layouts
+import MainLayout from "../layouts/MainLayout";
+import DashboardLayout from "../layouts/DashboardLayout";
+
+// Lazy load pages (code-splitting)
+const Home = lazy(() => import("../pages/client/Home/Home"));
+const Shop = lazy(() => import("../pages/client/Shop/Shop"));
+const Cart = lazy(() => import("../pages/client/Cart/Cart"));
+const Profile = lazy(() => import("../pages/client/Profile/Profile"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
+const NotFound = lazy(() => import("../pages/NotFound"));
 
-// Admin
-const AdminDashboard = lazy(() => import("../pages/admin/Dashboard"));
-const AdminProducts = lazy(() => import("../pages/admin/Products"));
-const AdminOrders = lazy(() => import("../pages/admin/Orders"));
-const AdminUsers = lazy(() => import("../pages/admin/Users"));
+// Admin Pages
+const AdminDashboard = lazy(() => import("../pages/admin/Dashboard/Dashboard"));
+const AdminProducts = lazy(() => import("../pages/admin/Products/Products"));
+const AdminOrders = lazy(() => import("../pages/admin/Orders/Orders"));
+const AdminUsers = lazy(() => import("../pages/admin/Users/Users"));
 
-const AppRoutes = () => {
+export default function AppRoutes() {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* Public routes with MainLayout */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Client Protected */}
-        <Route
-          path="/cart"
-          element={
-            <ProtectedRoute>
-              <Cart />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+          {/* Client protected routes */}
+          <Route
+            path="/cart"
+            element={
+              <ProtectedRoute>
+                <Cart />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
 
-        {/* Admin Protected */}
+        {/* Admin routes with DashboardLayout */}
         <Route
           path="/admin"
           element={
             <RoleBasedRoute allowedRoles={["admin"]}>
-              <AdminDashboard />
+              <DashboardLayout />
             </RoleBasedRoute>
           }
-        />
-        <Route
-          path="/admin/products"
-          element={
-            <RoleBasedRoute allowedRoles={["admin"]}>
-              <AdminProducts />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/admin/orders"
-          element={
-            <RoleBasedRoute allowedRoles={["admin"]}>
-              <AdminOrders />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <RoleBasedRoute allowedRoles={["admin"]}>
-              <AdminUsers />
-            </RoleBasedRoute>
-          }
-        />
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="users" element={<AdminUsers />} />
+        </Route>
+
+        {/* Catch-all 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
-};
-
-export default AppRoutes;
+}

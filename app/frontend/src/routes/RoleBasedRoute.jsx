@@ -1,17 +1,26 @@
 import React from "react";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const RoleBasedRoute = ({ children, allowedRoles }) => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>;
+  }
 
+  // Not logged in → go to login
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Logged in but role not allowed → back home
   if (!allowedRoles.includes(user.role)) {
-    // if user tries to access admin but is client
     return <Navigate to="/" replace />;
   }
 
+  // Authorized
   return children;
 };
 
