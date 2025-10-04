@@ -17,11 +17,23 @@ export function AuthProvider({ children }) {
   // Fetch current user on mount
   useEffect(() => {
     const fetchUser = async () => {
+      const token = localStorage.getItem("auth_token");
+      
+      // If no token exists, don't make API call
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         await ensureCsrfToken();
         const res = await api.get("/api/user");
         setUser(res.data);
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+        // Clear invalid token
+        localStorage.removeItem("auth_token");
         setUser(null);
       } finally {
         setLoading(false);
@@ -49,8 +61,12 @@ export function AuthProvider({ children }) {
       const response = await api.post("/login", { email, password });
 
       const { user, token } = response.data;
-      setUser(user);
+      
+      // IMPORTANT: Store token FIRST before setting user
       localStorage.setItem("auth_token", token);
+      
+      // Then set user state
+      setUser(user);
 
       return { success: true, user };
     } catch (err) {
@@ -83,11 +99,13 @@ export function AuthProvider({ children }) {
         password_confirmation,
       });
 
-      // Laravel registers & logs in user automatically
       const { user, token } = response.data;
 
-      setUser(user);
+      // IMPORTANT: Store token FIRST before setting user
       localStorage.setItem("auth_token", token);
+      
+      // Then set user state
+      setUser(user);
 
       return { success: true, user };
     } catch (err) {
@@ -108,10 +126,12 @@ export function AuthProvider({ children }) {
     setAuthenticating(true);
     try {
       await api.post("/logout");
-      setUser(null);
     } catch (err) {
       console.warn("Logout failed", err);
     } finally {
+      // Always clear token and user state
+      localStorage.removeItem("auth_token");
+      setUser(null);
       setAuthenticating(false);
     }
   };

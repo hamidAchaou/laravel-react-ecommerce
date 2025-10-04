@@ -1,22 +1,19 @@
-import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+// src/routes/ProtectedRoute.jsx
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children }) => {
+export default function ProtectedRoute({ role }) {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
-  // Still checking auth → show loading
-  if (loading) {
-    return <div className="p-6 text-center">Loading...</div>;
-  }
+  // 🟡 While loading user => DON'T redirect yet!
+  if (loading) return <div className="p-6 text-center">Checking session...</div>;
 
-  // Not logged in → redirect to login
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+  // 🔴 Not logged in → redirect to login
+  if (!user) return <Navigate to="/login" replace />;
 
-  return children;
-};
+  // 🔴 Unauthorized role → redirect to home
+  if (role && user.role !== role) return <Navigate to="/" replace />;
 
-export default ProtectedRoute;
+  // ✅ Allowed → render route
+  return <Outlet />;
+}

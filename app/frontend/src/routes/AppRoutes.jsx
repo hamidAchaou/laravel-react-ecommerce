@@ -8,7 +8,7 @@ import RoleBasedRoute from "./RoleBasedRoute";
 import MainLayout from "../layouts/MainLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 
-// Lazy load pages (code-splitting)
+// Lazy load pages
 const Home = lazy(() => import("../pages/client/Home/Home"));
 const Shop = lazy(() => import("../pages/client/Shop/Shop"));
 const Cart = lazy(() => import("../pages/client/Cart/Cart"));
@@ -27,49 +27,34 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
       <Routes>
-        {/* Public routes with MainLayout */}
+
+        {/* Public Routes with MainLayout */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Client protected routes */}
-          <Route
-            path="/cart"
-            element={
-              <ProtectedRoute>
-                <Cart />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+          {/* Protected Client Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
         </Route>
 
-        {/* Admin routes with DashboardLayout */}
-        <Route
-          path="/admin"
-          element={
-            <RoleBasedRoute allowedRoles={["admin"]}>
-              <DashboardLayout />
-            </RoleBasedRoute>
-          }
-        >
-          <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="users" element={<AdminUsers />} />
+        {/* Protected Admin Routes */}
+        <Route element={<RoleBasedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin" element={<DashboardLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
         </Route>
 
         {/* Catch-all 404 */}
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </Suspense>
   );

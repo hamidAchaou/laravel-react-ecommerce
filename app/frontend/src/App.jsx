@@ -1,19 +1,17 @@
 // frontend/src/App.jsx
+import { useAuth } from "./context/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
 
 function App() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading user...</div>;
+  }
+
   return (
     <>
-      {/* Global SEO metadata */}
       <title>My E-commerce App</title>
-      <meta
-        name="description"
-        content="Best E-commerce App with React, TailwindCSS, and Clean Architecture."
-      />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <meta charSet="UTF-8" />
-
-      {/* Centralized Routes */}
       <AppRoutes />
     </>
   );

@@ -7,7 +7,16 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    $user = $request->user();
+    $roles = $user->getRoleNames();
+    
+    return response()->json([
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'role' => $roles->first() ?? 'user',
+        'roles' => $roles,
+    ]);
 });
 
 // Products routes
