@@ -1,13 +1,16 @@
-// Navbar.jsx
+// src/components/common/Navbar.jsx
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext.jsx";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../../features/auth/authThunks";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
     navigate("/login");
   };
 
@@ -34,42 +37,21 @@ export default function Navbar() {
           {user?.role === "client" && (
             <>
               <li>
-                <NavLink
-                  to="/cart"
-                  className={({ isActive }) =>
-                    isActive ? "underline underline-offset-4" : ""
-                  }
-                >
-                  Cart
-                </NavLink>
+                <NavLink to="/cart">Cart</NavLink>
               </li>
               <li>
-                <NavLink
-                  to="/checkout"
-                  className={({ isActive }) =>
-                    isActive ? "underline underline-offset-4" : ""
-                  }
-                >
-                  Checkout
-                </NavLink>
+                <NavLink to="/checkout">Checkout</NavLink>
               </li>
             </>
           )}
 
           {user?.role === "admin" && (
             <li>
-              <NavLink
-                to="/admin/dashboard"
-                className={({ isActive }) =>
-                  isActive ? "underline underline-offset-4" : ""
-                }
-              >
-                Dashboard
-              </NavLink>
+              <NavLink to="/admin/dashboard">Dashboard</NavLink>
             </li>
           )}
 
-          {!user ? (
+          {!isAuthenticated ? (
             <>
               <li>
                 <NavLink to="/login">Login</NavLink>
@@ -89,11 +71,6 @@ export default function Navbar() {
             </li>
           )}
         </ul>
-
-        {/* Mobile menu placeholder */}
-        <div className="md:hidden">
-          {/* Add hamburger menu for mobile if needed */}
-        </div>
       </div>
     </nav>
   );

@@ -1,15 +1,15 @@
 // src/routes/RoleBasedRoute.jsx
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useSelector } from "react-redux";
 
 export default function RoleBasedRoute({ allowedRoles }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useSelector((state) => state.auth);
 
   if (loading) return <div className="p-6 text-center">Checking permissions...</div>;
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  if (!allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
+  if (!allowedRoles.includes(user?.role)) return <Navigate to="/" replace />;
 
   return <Outlet />;
 }

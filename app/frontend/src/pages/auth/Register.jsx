@@ -1,34 +1,30 @@
-// src/pages/auth/Register.jsx
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../../features/auth/authThunks";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 
 export default function Register() {
-  const { register, error, setError, authenticating } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    const res = await dispatch(registerUser(form));
 
-    const res = await register(name, email, password, passwordConfirmation);
-
-    if (res.success) {
-      const userRole = res.user?.role;
-      if (userRole === "admin") {
-        navigate("/admin");
-      } else if (userRole === "seller") {
-        navigate("/seller");
-      } else {
-        navigate("/");
-      }
-    } else {
-      setError(res.message);
+    if (res.meta.requestStatus === "fulfilled") {
+      const userRole = res.payload.user.role;
+      navigate(userRole === "admin" ? "/admin" : "/");
     }
   };
 
@@ -39,66 +35,33 @@ export default function Register() {
           Register
         </h2>
 
-        {error && (
-          <div className="mb-4 text-red-600 font-medium text-center">{error}</div>
-        )}
+        {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            required
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            value={passwordConfirmation}
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            required
-          />
+          {["name", "email", "password", "password_confirmation"].map((field) => (
+            <input
+              key={field}
+              type={field.includes("password") ? "password" : "text"}
+              name={field}
+              placeholder={field.replace("_", " ").toUpperCase()}
+              value={form[field]}
+              onChange={handleChange}
+              required
+              className="border rounded-lg px-4 py-3"
+            />
+          ))}
 
           <button
-            type="submit"
-            disabled={authenticating}
-            className={`w-full py-3 rounded-lg text-white font-semibold transition ${
-              authenticating
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-brand-primary hover:bg-brand-secondary"
-            }`}
+            disabled={loading}
+            className="bg-brand-primary text-white py-3 rounded-lg"
           >
-            {authenticating ? "Registering..." : "Register"}
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-gray-500">
+        <p className="mt-4 text-center">
           Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-brand-accent hover:text-brand-accent-hover font-medium"
-          >
+          <Link to="/login" className="text-brand-accent">
             Login
           </Link>
         </p>

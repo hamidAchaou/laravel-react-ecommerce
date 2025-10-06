@@ -1,37 +1,26 @@
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../../features/auth/authThunks";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-  
-    const res = await login(email, password);
-    setLoading(false);
-  
-    if (res.success) {
-      const userRole = res.user?.role;
-      if (userRole === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
-    }
-       else {
-      setError(res.message);
+    const res = await dispatch(loginUser({ email, password }));
+
+    if (res.meta.requestStatus === "fulfilled") {
+      const userRole = res.payload.user.role;
+      if (userRole === "admin") navigate("/admin");
+      else navigate("/");
     }
   };
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-light px-4">
@@ -40,44 +29,36 @@ export default function Login() {
           Login
         </h2>
 
-        {error && (
-          <div className="mb-4 text-red-600 font-medium text-center">{error}</div>
-        )}
+        {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="email"
-            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            placeholder="Email"
             required
+            className="border rounded-lg px-4 py-3"
           />
-
           <input
             type="password"
-            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            placeholder="Password"
             required
+            className="border rounded-lg px-4 py-3"
           />
-
           <button
-            type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-secondary transition disabled:opacity-50"
+            className="bg-brand-primary text-white py-3 rounded-lg"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-gray-500">
+        <p className="mt-4 text-center">
           Don’t have an account?{" "}
-          <Link
-            to="/register"
-            className="text-brand-accent hover:text-brand-accent-hover font-medium"
-          >
+          <Link to="/register" className="text-brand-accent">
             Register
           </Link>
         </p>
