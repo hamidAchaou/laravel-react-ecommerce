@@ -9,7 +9,7 @@ use App\Http\Controllers\OrderController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     $user = $request->user();
     $roles = $user->getRoleNames();
-    
+
     return response()->json([
         'id' => $user->id,
         'name' => $user->name,
