@@ -5,13 +5,24 @@ import AppRoutes from "./routes/AppRoutes";
 
 function App() {
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.auth);
+  const { loading, user, isAuthenticated } = useSelector((state) => state.auth);
 
+  // ✅ Only fetch if token exists and user not loaded
   useEffect(() => {
-    dispatch(fetchCurrentUser());
-  }, [dispatch]);
+    const token = localStorage.getItem("auth_token");
+    if (token && !user && isAuthenticated) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [dispatch, user, isAuthenticated]);
 
-  // if (loading) return <div className="p-6 text-center">Loading user...</div>;
+  // ✅ Show loading ONLY when checking auth on initial load
+  if (loading && !user && isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading user...</div>
+      </div>
+    );
+  }
 
   return <AppRoutes />;
 }

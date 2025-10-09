@@ -1,11 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { fetchCurrentUser, loginUser, registerUser, logoutUser } from "./authThunks";
 
+// ✅ Read from localStorage on initialization
+const token = localStorage.getItem("auth_token");
+
 const initialState = {
   user: null,
-  loading: false,
+  loading: !!token, // Set loading true if token exists (will fetch user)
   error: null,
-  isAuthenticated: false,
+  isAuthenticated: !!token, // If token exists, assume authenticated
 };
 
 const authSlice = createSlice({
@@ -27,6 +30,8 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        // ✅ Clear invalid token
+        localStorage.removeItem("auth_token");
       })
 
       // LOGIN

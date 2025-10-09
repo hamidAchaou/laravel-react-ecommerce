@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../../features/auth/authThunks";
 import { useNavigate, Link } from "react-router-dom";
@@ -6,10 +6,17 @@ import { useNavigate, Link } from "react-router-dom";
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, user } = useSelector((state) => state.auth);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // ✅ Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(user.role === "admin" ? "/admin" : "/", { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,8 +24,7 @@ export default function Login() {
 
     if (res.meta.requestStatus === "fulfilled") {
       const userRole = res.payload.user.role;
-      if (userRole === "admin") navigate("/admin");
-      else navigate("/");
+      navigate(userRole === "admin" ? "/admin" : "/", { replace: true });
     }
   };
 
@@ -50,14 +56,14 @@ export default function Login() {
           />
           <button
             disabled={loading}
-            className="bg-brand-primary text-white py-3 rounded-lg"
+            className="bg-brand-primary text-white py-3 rounded-lg disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         <p className="mt-4 text-center">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link to="/register" className="text-brand-accent">
             Register
           </Link>
