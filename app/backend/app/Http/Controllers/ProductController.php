@@ -34,7 +34,7 @@ class ProductController extends Controller
         $products = $this->productRepository->getAllPaginate(
             filters: $filters,
             with: ['category', 'images'],
-            searchableFields: ['name', 'description'],
+            searchableFields: ['title', 'description'],
             perPage: $perPage,
             orderBy: $sortBy,
             direction: $sortDir

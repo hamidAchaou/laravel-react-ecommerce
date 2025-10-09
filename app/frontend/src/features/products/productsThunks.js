@@ -10,9 +10,14 @@ export const fetchProducts = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/api/products");
+      console.log("✅ API raw response:", response);
+      console.log("✅ API response.data:", response.data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to fetch products");
+      console.error("❌ Fetch products error:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch products"
+      );
     }
   }
 );
@@ -27,7 +32,9 @@ export const fetchProductById = createAsyncThunk(
       const response = await api.get(`/api/products/${id}`);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to fetch product");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch product"
+      );
     }
   }
 );
@@ -42,7 +49,9 @@ export const createProduct = createAsyncThunk(
       const response = await api.post("/api/products", productData);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to create product");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create product"
+      );
     }
   }
 );
@@ -57,7 +66,9 @@ export const updateProduct = createAsyncThunk(
       const response = await api.put(`/api/products/${id}`, data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to update product");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update product"
+      );
     }
   }
 );
@@ -70,9 +81,11 @@ export const deleteProduct = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       await api.delete(`/api/products/${id}`);
-      return id;
+      return id; // Return the deleted ID
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to delete product");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete product"
+      );
     }
   }
 );
