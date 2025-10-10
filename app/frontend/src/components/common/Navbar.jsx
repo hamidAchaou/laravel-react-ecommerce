@@ -47,7 +47,7 @@ export default function Navbar() {
 
           {user?.role === "admin" && (
             <li>
-              <NavLink to="/admin/dashboard">Dashboard</NavLink>
+              <NavLink to="/admin">Dashboard</NavLink>
             </li>
           )}
 

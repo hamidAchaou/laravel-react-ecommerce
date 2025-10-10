@@ -1,34 +1,35 @@
 // src/components/admin/ui/Input/AppInput.jsx
 import React from "react";
-import { TextField } from "@mui/material";
+import { TextField, useTheme } from "@mui/material";
 
-const AppInput = ({
-  name,
-  label,
-  register,
-  error,
-  helperText,
-  variant = "outlined",
-  fullWidth = true,
-  ...props
-}) => {
-  return (
-    <TextField
-      {...(register ? register(name) : {})}
-      label={label}
-      error={!!error}
-      helperText={error?.message || helperText}
-      variant={variant}
-      fullWidth={fullWidth}
-      sx={{
-        mb: 2,
-        "& .MuiOutlinedInput-root": {
-          borderRadius: 2,
-        },
-      }}
-      {...props}
-    />
-  );
-};
+const AppInput = React.memo(
+  ({ name, label, register, error, helperText, variant = "outlined", fullWidth = true, className = "", ...props }) => {
+    const theme = useTheme();
 
-export default React.memo(AppInput);
+    return (
+      <TextField
+        {...(register ? register(name) : {})}
+        label={label}
+        error={!!error}
+        helperText={error?.message || helperText}
+        variant={variant}
+        fullWidth={fullWidth}
+        {...props}
+        className={className}
+        sx={{
+          mb: 2,
+          backgroundColor: theme.palette.mode === "dark" ? "#1E293B" : "#fff",
+          input: { color: theme.palette.text.primary },
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 2,
+            "& fieldset": { borderColor: theme.palette.divider },
+            "&:hover fieldset": { borderColor: theme.palette.primary.main },
+          },
+          "& .MuiFormHelperText-root": { color: theme.palette.text.secondary },
+        }}
+      />
+    );
+  }
+);
+
+export default AppInput;

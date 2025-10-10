@@ -30,12 +30,12 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // ✅ Fetch products once on mount
+  // ✅ Fetch products once on mount (if empty)
   useEffect(() => {
-    dispatch(fetchProducts());
-  }, [dispatch]);
+    if (!products.length) dispatch(fetchProducts());
+  }, [dispatch, products.length]);
 
-  // ✅ Columns definition with memoization
+  // ✅ Columns definition (memoized)
   const columns = useMemo(
     () => [
       {
@@ -67,7 +67,6 @@ export default function Products() {
         field: "price",
         headerName: "Price (MAD)",
         minWidth: 120,
-        type: "number",
         align: "right",
         headerAlign: "right",
         renderCell: (params) => (
@@ -95,7 +94,7 @@ export default function Products() {
             />
           ) : (
             <Typography variant="caption" color="text.secondary">
-              — 
+              —
             </Typography>
           ),
       },
@@ -117,7 +116,7 @@ export default function Products() {
     []
   );
 
-  // ✅ Filtered rows for search
+  // ✅ Search Filter
   const filteredRows = useMemo(() => {
     if (!searchTerm) return products;
     const term = searchTerm.toLowerCase();
@@ -129,9 +128,10 @@ export default function Products() {
   }, [products, searchTerm]);
 
   // ✅ Handlers
-  const handleAddProduct = useCallback(() => {
-    navigate("/admin/products/create");
-  }, [navigate]);
+  const handleAddProduct = useCallback(
+    () => navigate("/admin/products/create"),
+    [navigate]
+  );
 
   const handleView = useCallback(
     (row) => navigate(`/admin/products/${row.id}`),
@@ -153,36 +153,37 @@ export default function Products() {
 
   const handleExport = useCallback(() => {
     if (!products.length) return;
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      ["ID,Title,Price,Category"]
-        .concat(
-          products.map(
-            (p) =>
-              `${p.id},"${p.title.replace(/"/g, '""')}",${p.price},"${
-                p.category?.name || ""
-              }"`
-          )
-        )
-        .join("\n");
+
+    const headers = ["ID", "Title", "Price", "Category"];
+    const csvRows = products.map(
+      (p) =>
+        `${p.id},"${p.title.replace(/"/g, '""')}",${p.price},"${
+          p.category?.name || ""
+        }"`
+    );
+
+    const csvString = [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
+    link.href = url;
     link.download = "products_export.csv";
     link.click();
+    URL.revokeObjectURL(url);
   }, [products]);
 
   // ✅ Loading & Error UI
   if (loading)
     return (
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        mt={6}
-        minHeight="60vh"
+        className="flex justify-center items-center h-[70vh] bg-white"
+        sx={{ gap: 2 }}
       >
-        <CircularProgress />
+        <CircularProgress size={28} />
+        <Typography variant="body1" color="text.secondary">
+          Loading products...
+        </Typography>
       </Box>
     );
 
@@ -193,20 +194,15 @@ export default function Products() {
       </Typography>
     );
 
-  // ✅ Render
+  // ✅ Main Render
   return (
     <Box sx={{ p: 3 }}>
-      <Typography
-        variant="h4"
-        fontWeight={700}
-        mb={2}
-        component="h1"
-        sx={{ color: "text.primary" }}
-      >
-        Products Management
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+        <Typography variant="h4" fontWeight={700} color="text.primary">
+          Products Management
+        </Typography>
+      </Stack>
 
-      {/* Toolbar */}
       <DataTableToolbar
         title="Products"
         onAddClick={handleAddProduct}
@@ -216,8 +212,14 @@ export default function Products() {
         addLabel="Add Product"
       />
 
-      {/* Data Table */}
-      <Paper sx={{ mt: 2, p: 1 }}>
+      <Paper
+        sx={{
+          mt: 2,
+          p: 1,
+          borderRadius: 2,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        }}
+      >
         <DataTable
           columns={columns}
           rows={filteredRows}
@@ -228,7 +230,6 @@ export default function Products() {
         />
       </Paper>
 
-      {/* Delete Confirmation */}
       <DeleteConfirmationModal
         open={!!deleteTarget}
         handleClose={() => setDeleteTarget(null)}

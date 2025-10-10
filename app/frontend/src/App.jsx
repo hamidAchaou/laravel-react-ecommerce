@@ -1,7 +1,9 @@
+// src/App.jsx
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCurrentUser } from "./features/auth/authThunks";
 import AppRoutes from "./routes/AppRoutes";
+import Loader from "./components/common/Loader";
 
 export default function App() {
   const dispatch = useDispatch();
@@ -14,14 +16,8 @@ export default function App() {
     }
   }, [dispatch, user]);
 
-  if (loading && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg font-medium text-gray-700 animate-pulse">
-          Loading...
-        </div>
-      </div>
-    );
+  if (loading && !user && isAuthenticated) {
+    return <Loader text="Loading your session..." fullscreen />;
   }
 
   return <AppRoutes />;
