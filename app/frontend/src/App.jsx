@@ -3,28 +3,26 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchCurrentUser } from "./features/auth/authThunks";
 import AppRoutes from "./routes/AppRoutes";
 
-function App() {
+export default function App() {
   const dispatch = useDispatch();
   const { loading, user, isAuthenticated } = useSelector((state) => state.auth);
 
-  // ✅ Only fetch if token exists and user not loaded
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
-    if (token && !user && isAuthenticated) {
+    if (token && !user) {
       dispatch(fetchCurrentUser());
     }
-  }, [dispatch, user, isAuthenticated]);
+  }, [dispatch, user]);
 
-  // ✅ Show loading ONLY when checking auth on initial load
-  if (loading && !user && isAuthenticated) {
+  if (loading && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading user...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg font-medium text-gray-700 animate-pulse">
+          Loading...
+        </div>
       </div>
     );
   }
 
   return <AppRoutes />;
 }
-
-export default App;

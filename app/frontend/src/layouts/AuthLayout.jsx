@@ -1,4 +1,4 @@
-// frontend/src/layouts/AuthLayout.jsx
+// src/layouts/AuthLayout.jsx
 import { Outlet } from "react-router-dom";
 
 export default function AuthLayout() {

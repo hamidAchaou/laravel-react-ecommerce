@@ -1,6 +1,7 @@
 // src/layouts/DashboardLayout.jsx
 import React, { useState } from "react";
 import { Box, CssBaseline, useTheme } from "@mui/material";
+import { SnackbarProvider } from "notistack";
 import { Outlet } from "react-router-dom";
 import AdminNav from "./admin/AdminNav";
 import AdminAside from "./admin/AdminAside";
@@ -14,33 +15,38 @@ export default function DashboardLayout() {
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
+    <SnackbarProvider maxSnack={3} autoHideDuration={3000}>
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
 
-      {/* Navbar */}
-      <AdminNav drawerWidth={drawerWidth} handleDrawerToggle={handleDrawerToggle} />
+        {/* Navbar */}
+        <AdminNav
+          drawerWidth={drawerWidth}
+          handleDrawerToggle={handleDrawerToggle}
+        />
 
-      {/* Sidebar */}
-      <AdminAside
-        mobileOpen={mobileOpen}
-        handleDrawerToggle={handleDrawerToggle}
-        drawerWidth={drawerWidth}
-      />
+        {/* Sidebar */}
+        <AdminAside
+          mobileOpen={mobileOpen}
+          handleDrawerToggle={handleDrawerToggle}
+          drawerWidth={drawerWidth}
+        />
 
-      {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8,
-          bgcolor: theme.palette.background.default,
-          minHeight: "100vh",
-        }}
-      >
-        <Outlet />
+        {/* Main Content */}
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            width: { sm: `calc(100% - ${drawerWidth}px)` },
+            mt: 8,
+            bgcolor: theme.palette.background.default,
+            minHeight: "100vh",
+          }}
+        >
+          <Outlet />
+        </Box>
       </Box>
-    </Box>
+    </SnackbarProvider>
   );
 }
