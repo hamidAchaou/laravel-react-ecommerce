@@ -20,6 +20,10 @@ const NotFound = lazy(() => import("../pages/NotFound"));
 // Admin Pages
 const AdminDashboard = lazy(() => import("../pages/admin/Dashboard/Dashboard"));
 const AdminProducts = lazy(() => import("../pages/admin/Products/Products"));
+const ProductDetails = lazy(() => import("../pages/admin/Products/ProductDetails"));
+const ProductCreate = lazy(() => import("../pages/admin/Products/ProductCreate"));
+const ProductEdit = lazy(() => import("../pages/admin/Products/ProductEdit"));
+
 const AdminOrders = lazy(() => import("../pages/admin/Orders/Orders"));
 const AdminUsers = lazy(() => import("../pages/admin/Users/Users"));
 
@@ -46,7 +50,14 @@ export default function AppRoutes() {
         <Route element={<RoleBasedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<DashboardLayout />}>
             <Route index element={<AdminDashboard />} />
+
+            {/* Products Routes */}
             <Route path="products" element={<AdminProducts />} />
+            <Route path="products/create" element={<ProductCreate />} />
+            <Route path="products/edit/:id" element={<ProductEdit />} />
+            <Route path="products/:id" element={<ProductDetails />} />
+
+            {/* Other Admin Pages */}
             <Route path="orders" element={<AdminOrders />} />
             <Route path="users" element={<AdminUsers />} />
           </Route>

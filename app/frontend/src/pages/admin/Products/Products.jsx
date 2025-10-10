@@ -1,34 +1,189 @@
-// src/pages/admin/Products.jsx
-import React, { useEffect } from "react";
+// src/pages/admin/Products/Products.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchProducts } from "../../../features/products/productsThunks";
-
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  CardMedia,
-  Grid,
-  Stack,
+  Avatar,
   Chip,
+  Stack,
+  CircularProgress,
+  Paper,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import {
+  fetchProducts,
+  deleteProduct,
+} from "../../../features/products/productsThunks";
+import DataTable from "../../../components/admin/DataTable/DataTable";
+import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
+import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
 
 export default function Products() {
   const dispatch = useDispatch();
-  const { items, loading, error } = useSelector((state) => state.products);
+  const navigate = useNavigate();
 
+  const { items: products, loading, error } = useSelector(
+    (state) => state.products
+  );
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // ✅ Fetch products once on mount
   useEffect(() => {
-    dispatch(fetchProducts()).then((res) =>
-      console.log("🟢 Fetched products thunk result:", res)
-    );
+    dispatch(fetchProducts());
   }, [dispatch]);
 
+  // ✅ Columns definition with memoization
+  const columns = useMemo(
+    () => [
+      {
+        field: "image",
+        headerName: "Image",
+        width: 80,
+        sortable: false,
+        renderCell: (params) => (
+          <Avatar
+            src={params.row?.images?.[0]?.image_path || "/placeholder.png"}
+            alt={params.row?.title || "Product"}
+            variant="rounded"
+            sx={{ width: 48, height: 48 }}
+          />
+        ),
+      },
+      {
+        field: "title",
+        headerName: "Title",
+        flex: 1,
+        minWidth: 180,
+        renderCell: (params) => (
+          <Typography variant="body2" fontWeight={500}>
+            {params.value || "—"}
+          </Typography>
+        ),
+      },
+      {
+        field: "price",
+        headerName: "Price (MAD)",
+        minWidth: 120,
+        type: "number",
+        align: "right",
+        headerAlign: "right",
+        renderCell: (params) => (
+          <Typography variant="body2">
+            {params.value ? `${params.value} MAD` : "—"}
+          </Typography>
+        ),
+      },
+      {
+        field: "category",
+        headerName: "Category",
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) =>
+          params.value ? (
+            <Chip
+              label={params.value.name}
+              color="primary"
+              size="small"
+              sx={{
+                textTransform: "capitalize",
+                fontWeight: 500,
+                bgcolor: (theme) => theme.palette.primary.main + "20",
+              }}
+            />
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              — 
+            </Typography>
+          ),
+      },
+      {
+        field: "created_at",
+        headerName: "Created At",
+        minWidth: 160,
+        valueGetter: (params) =>
+          params.value ? new Date(params.value).toLocaleString("fr-FR") : "—",
+      },
+      {
+        field: "updated_at",
+        headerName: "Updated At",
+        minWidth: 160,
+        valueGetter: (params) =>
+          params.value ? new Date(params.value).toLocaleString("fr-FR") : "—",
+      },
+    ],
+    []
+  );
+
+  // ✅ Filtered rows for search
+  const filteredRows = useMemo(() => {
+    if (!searchTerm) return products;
+    const term = searchTerm.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.title?.toLowerCase().includes(term) ||
+        p.category?.name?.toLowerCase().includes(term)
+    );
+  }, [products, searchTerm]);
+
+  // ✅ Handlers
+  const handleAddProduct = useCallback(() => {
+    navigate("/admin/products/create");
+  }, [navigate]);
+
+  const handleView = useCallback(
+    (row) => navigate(`/admin/products/${row.id}`),
+    [navigate]
+  );
+
+  const handleEdit = useCallback(
+    (row) => navigate(`/admin/products/edit/${row.id}`),
+    [navigate]
+  );
+
+  const handleDelete = useCallback((row) => setDeleteTarget(row), []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    await dispatch(deleteProduct(deleteTarget.id));
+    setDeleteTarget(null);
+  }, [dispatch, deleteTarget]);
+
+  const handleExport = useCallback(() => {
+    if (!products.length) return;
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      ["ID,Title,Price,Category"]
+        .concat(
+          products.map(
+            (p) =>
+              `${p.id},"${p.title.replace(/"/g, '""')}",${p.price},"${
+                p.category?.name || ""
+              }"`
+          )
+        )
+        .join("\n");
+
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = "products_export.csv";
+    link.click();
+  }, [products]);
+
+  // ✅ Loading & Error UI
   if (loading)
     return (
-      <Typography variant="h6" align="center" mt={4}>
-        Loading products...
-      </Typography>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        mt={6}
+        minHeight="60vh"
+      >
+        <CircularProgress />
+      </Box>
     );
 
   if (error)
@@ -38,81 +193,47 @@ export default function Products() {
       </Typography>
     );
 
-  if (items.length === 0)
-    return (
-      <Typography variant="h6" align="center" mt={4}>
-        No products found.
-      </Typography>
-    );
-
+  // ✅ Render
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Products
+      <Typography
+        variant="h4"
+        fontWeight={700}
+        mb={2}
+        component="h1"
+        sx={{ color: "text.primary" }}
+      >
+        Products Management
       </Typography>
 
-      <Grid container spacing={3}>
-        {items.map((p) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={p.id}>
-            <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-              {p.images && p.images.length > 0 && (
-                <CardMedia
-                  component="img"
-                  height="180"
-                  image={p.images[0].image_path}
-                  alt={p.images[0].alt_text || "Product Image"}
-                />
-              )}
+      {/* Toolbar */}
+      <DataTableToolbar
+        title="Products"
+        onAddClick={handleAddProduct}
+        onSearchChange={setSearchTerm}
+        onExportClick={handleExport}
+        searchPlaceholder="Search by title or category..."
+        addLabel="Add Product"
+      />
 
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" gutterBottom>
-                  {p.title ?? "(No title)"}
-                </Typography>
+      {/* Data Table */}
+      <Paper sx={{ mt: 2, p: 1 }}>
+        <DataTable
+          columns={columns}
+          rows={filteredRows}
+          loading={loading}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </Paper>
 
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {p.description ?? "No description"}
-                </Typography>
-
-                {p.category && (
-                  <Stack direction="row" spacing={1} mt={1} mb={1}>
-                    <Chip label={p.category.name} color="primary" size="small" />
-                    <Typography variant="caption">
-                      Type: {p.category.type} | ID: {p.category.id}
-                    </Typography>
-                  </Stack>
-                )}
-
-                {p.images && p.images.length > 0 && (
-                  <Stack direction="row" spacing={1} flexWrap="wrap" mt={1}>
-                    {p.images.map((img) => (
-                      <Box key={img.id} textAlign="center">
-                        <CardMedia
-                          component="img"
-                          image={img.image_path}
-                          alt={img.alt_text}
-                          sx={{ width: 100, height: 100, borderRadius: 1, objectFit: "cover" }}
-                        />
-                        <Typography variant="caption" display="block" mt={0.5}>
-                          {img.is_primary ? "⭐ Primary" : "Secondary"}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                )}
-
-                <Typography variant="caption" color="text.secondary" mt={1} display="block">
-                  Price: {p.price} MAD
-                </Typography>
-
-                <Typography variant="caption" color="text.secondary" mt={1} display="block">
-                  Created at: {p.created_at} <br />
-                  Updated at: {p.updated_at}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {/* Delete Confirmation */}
+      <DeleteConfirmationModal
+        open={!!deleteTarget}
+        handleClose={() => setDeleteTarget(null)}
+        handleDeleteConfirm={confirmDelete}
+      />
     </Box>
   );
 }
