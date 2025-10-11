@@ -1,28 +1,46 @@
 // src/pages/admin/Products/ProductForm.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Stack,
   Avatar,
   IconButton,
-  Chip,
   Card,
   CardContent,
   CardHeader,
   Grid,
   useTheme,
+  CardMedia,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Add, Delete } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  AppInput,
+  AppTextarea,
+  AppSelect,
+  AppButton,
+} from "../../../components/admin/ui";
+import { fetchCategories } from "../../../features/categories/categoriesTunks";
 
-// ✅ Custom UI components
-import { AppInput, AppTextarea, AppSelect, AppButton } from "../../../components/admin/ui";
-
-export default function ProductForm({ mode = "create", defaultValues = {}, onSubmit }) {
+export default function ProductForm({
+  mode = "create",
+  defaultValues = {},
+  onSubmit,
+}) {
   const theme = useTheme();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const { items: categories = [], loading: categoriesLoading } = useSelector(
+    (state) => state.categories || {}
+  );
+
+  /** Initialize form with default category if available */
   const {
     handleSubmit,
     control,
@@ -34,43 +52,86 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
       title: "",
       description: "",
       price: "",
-      category_id: "",
+      stock: 0,
+      category_id:
+        defaultValues?.category?.id?.toString() || "",
       images: [],
       ...defaultValues,
     },
   });
 
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
   const images = watch("images");
+  const [mainImage, setMainImage] = useState(null);
 
-  /** ✅ Handle image upload */
+  /** Fetch categories on mount */
+  useEffect(() => {
+    if (!categories.length) dispatch(fetchCategories());
+  }, [dispatch, categories.length]);
+
+  /** Prefill category & images when editing */
+  useEffect(() => {
+    if (mode === "update" && defaultValues) {
+      // Prefill category_id if category object exists
+      if (defaultValues.category?.id) {
+        setValue("category_id", String(defaultValues.category.id));
+      }
+
+      // Prefill images if they exist
+      if (defaultValues.images?.length) {
+        const formattedImages = defaultValues.images.map((img) => ({
+          ...img,
+          preview: img.image_path,
+        }));
+        setValue("images", formattedImages);
+
+        const primary = formattedImages.find((img) => img.is_primary);
+        setMainImage(primary ? primary.preview : formattedImages[0].preview);
+      }
+    }
+  }, [mode, defaultValues, setValue]);
+
+  /** Handle image upload */
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const imagesWithPreview = files.map((file) => ({
+    const imagesWithPreview = files.map((file, index) => ({
       file,
       preview: URL.createObjectURL(file),
-      is_primary: false,
+      is_primary: index === 0 && !mainImage,
     }));
-    setValue("images", [...images, ...imagesWithPreview]);
+
+    const newImages = [...images, ...imagesWithPreview];
+    setValue("images", newImages);
+    if (!mainImage && newImages.length > 0) setMainImage(newImages[0].preview);
   };
 
-  /** ✅ Remove image */
+  /** Remove image */
   const handleRemoveImage = (index) => {
-    setValue("images", images.filter((_, i) => i !== index));
+    const updated = images.filter((_, i) => i !== index);
+    setValue("images", updated);
+
+    if (mainImage === images[index]?.preview && updated.length > 0) {
+      setMainImage(updated[0].preview);
+    } else if (updated.length === 0) {
+      setMainImage(null);
+    }
   };
 
-  /** ✅ Set primary image */
-  const handleSetPrimary = (index) => {
-    setValue(
-      "images",
-      images.map((img, idx) => ({ ...img, is_primary: idx === index }))
-    );
+  /** Set main image */
+  const handleSetMainImage = (img) => {
+    const updatedImages = images.map((i) => ({
+      ...i,
+      is_primary: i === img,
+    }));
+    setValue("images", updatedImages);
+    setMainImage(img.preview || img.image_path);
   };
 
-  /** ✅ Form submission */
+  /** Submit form */
   const submitForm = async (data) => {
     try {
+      const primaryIndex = data.images.findIndex((img) => img.is_primary);
+      data.primary_image_index = primaryIndex >= 0 ? primaryIndex : 0;
+
       await onSubmit(data);
       enqueueSnackbar(
         `Product ${mode === "create" ? "created" : "updated"} successfully!`,
@@ -84,35 +145,44 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
     }
   };
 
-  /** ✅ Colors based on light/dark mode */
-  const bgColor = theme.palette.mode === "dark" ? theme.palette.background.paper : theme.palette.background.default;
-  const surfaceColor = theme.palette.mode === "dark" ? theme.palette.background.paper : theme.palette.background.paper;
-  const textPrimary = theme.palette.text.primary;
-  const textSecondary = theme.palette.text.secondary;
+  /** Category options */
+  const categoryOptions =
+    categories.length > 0
+      ? categories.map((cat) => ({
+          value: cat.id.toString(),
+          label: cat.name,
+        }))
+      : defaultValues.category
+      ? [
+          {
+            value: defaultValues.category.id.toString(),
+            label: defaultValues.category.name,
+          },
+        ]
+      : [];
 
   return (
-    <Box
-      className="p-6 flex justify-center min-h-screen"
-      sx={{ backgroundColor: bgColor }}
-    >
+    <Box className="p-6 flex justify-center min-h-screen">
       <Card
         className="w-full max-w-3xl shadow-md rounded-2xl border"
-        sx={{ borderColor: theme.palette.divider, backgroundColor: surfaceColor }}
+        sx={{
+          borderColor: theme.palette.divider,
+          backgroundColor: theme.palette.background.paper,
+        }}
       >
         <CardHeader
           title={
-            <Typography variant="h5" fontWeight={600} color={textPrimary}>
+            <Typography variant="h5" fontWeight={600}>
               {mode === "create" ? "Add New Product" : "Edit Product"}
             </Typography>
           }
-          subheader={
-            <Typography color={textSecondary}>Fill out the product details below</Typography>
-          }
+          subheader="Fill out the product details below"
         />
+
         <CardContent>
           <form onSubmit={handleSubmit(submitForm)}>
             <Stack spacing={3}>
-              {/* ✅ Title */}
+              {/* Title */}
               <Controller
                 name="title"
                 control={control}
@@ -122,7 +192,7 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                 )}
               />
 
-              {/* ✅ Description */}
+              {/* Description */}
               <Controller
                 name="description"
                 control={control}
@@ -131,7 +201,7 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                 )}
               />
 
-              {/* ✅ Price */}
+              {/* Price */}
               <Controller
                 name="price"
                 control={control}
@@ -146,7 +216,22 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                 )}
               />
 
-              {/* ✅ Category */}
+              {/* Stock */}
+              <Controller
+                name="stock"
+                control={control}
+                rules={{ required: "Stock is required" }}
+                render={({ field, fieldState }) => (
+                  <AppInput
+                    {...field}
+                    label="Stock"
+                    type="number"
+                    error={fieldState.error}
+                  />
+                )}
+              />
+
+              {/* Category */}
               <Controller
                 name="category_id"
                 control={control}
@@ -156,18 +241,15 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                     {...field}
                     label="Category"
                     error={fieldState.error}
-                    options={[
-                      { value: "1", label: "Electronics" },
-                      { value: "2", label: "Fashion" },
-                      { value: "3", label: "Home & Kitchen" },
-                    ]}
+                    options={categoryOptions}
+                    loading={categoriesLoading}
                   />
                 )}
               />
 
-              {/* ✅ Images Upload */}
+              {/* Image Upload */}
               <Box>
-                <Typography variant="subtitle1" fontWeight={500} mb={1} color={textPrimary}>
+                <Typography variant="subtitle1" fontWeight={500} mb={1}>
                   Product Images
                 </Typography>
                 <AppButton
@@ -175,31 +257,57 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                   color="primary"
                   startIcon={<Add />}
                   component="label"
-                  sx={{
-                    backgroundColor: theme.palette.mode === "dark" ? "#1E293B" : "#fff",
-                    "&:hover": {
-                      backgroundColor: theme.palette.mode === "dark" ? "#2c3e50" : "#f3f4f6",
-                    },
-                  }}
                 >
                   Upload Images
-                  <input type="file" hidden multiple accept="image/*" onChange={handleImageUpload} />
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
                 </AppButton>
 
+                {/* Main Image */}
+                {mainImage && (
+                  <CardMedia
+                    component="img"
+                    src={mainImage}
+                    alt="Main Product"
+                    sx={{
+                      width: "50%",
+                      height: 300,
+                      objectFit: "cover",
+                      borderRadius: 3,
+                      mt: 3,
+                      mx: "auto",
+                      boxShadow: 2,
+                    }}
+                  />
+                )}
+
+                {/* Thumbnails */}
                 {images?.length > 0 && (
-                  <Grid container spacing={2} mt={2}>
+                  <Grid container spacing={2} mt={2} justifyContent="center">
                     {images.map((img, idx) => (
-                      <Grid item xs={6} sm={4} md={3} key={idx}>
-                        <Box className="relative">
+                      <Grid item xs={4} sm={3} md={2} key={idx}>
+                        <Box position="relative" textAlign="center">
                           <Avatar
                             src={img.preview || img.image_path}
                             variant="rounded"
                             sx={{
                               width: "100%",
-                              height: 120,
+                              height: 80,
                               borderRadius: 2,
                               boxShadow: 1,
+                              cursor: "pointer",
+                              border:
+                                img.is_primary
+                                  ? `2px solid ${theme.palette.primary.main}`
+                                  : "2px solid transparent",
+                              transition: "all 0.2s",
                             }}
+                            onClick={() => handleSetMainImage(img)}
                           />
                           <IconButton
                             size="small"
@@ -207,29 +315,21 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                               position: "absolute",
                               top: 4,
                               right: 4,
-                              bgcolor: theme.palette.mode === "dark" ? "#374151" : "white",
+                              bgcolor:
+                                theme.palette.mode === "dark"
+                                  ? "#374151"
+                                  : "white",
                               "&:hover": {
-                                backgroundColor: theme.palette.mode === "dark" ? "#4B5563" : "#f3f4f6",
+                                backgroundColor:
+                                  theme.palette.mode === "dark"
+                                    ? "#4B5563"
+                                    : "#f3f4f6",
                               },
                             }}
                             onClick={() => handleRemoveImage(idx)}
                           >
                             <Delete fontSize="small" />
                           </IconButton>
-
-                          <Chip
-                            label="Primary"
-                            color={img.is_primary ? "primary" : "default"}
-                            size="small"
-                            onClick={() => handleSetPrimary(idx)}
-                            sx={{
-                              mt: 1,
-                              cursor: "pointer",
-                              fontWeight: 500,
-                              width: "100%",
-                              textAlign: "center",
-                            }}
-                          />
                         </Box>
                       </Grid>
                     ))}
@@ -237,9 +337,14 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                 )}
               </Box>
 
-              {/* ✅ Submit Button */}
+              {/* Submit */}
               <Box textAlign="right" mt={3}>
-                <AppButton type="submit" color="primary" variant="contained" loading={isSubmitting}>
+                <AppButton
+                  type="submit"
+                  color="primary"
+                  variant="contained"
+                  loading={isSubmitting}
+                >
                   {mode === "create" ? "Create Product" : "Update Product"}
                 </AppButton>
               </Box>

@@ -65,38 +65,65 @@ class ProductController extends Controller
     public function store(ProductStoreRequest $request): JsonResponse
     {
         $product = $this->productRepository->create($request->validated());
-    
-        // ✅ Save images
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $imageFile) {
-                $path = $imageFile->store('products', 'public'); // storage/app/public/products
-    
-                $product->images()->create([
-                    'image_path' => $path,
-                    'is_primary' => $request->is_primary[$index] ?? 0,
-                ]);
-            }
+
+        // ✅ Save images with primary image support
+        $images = $request->file('images', []);
+        $primaryIndex = (int) $request->input('primary_image_index', 0);
+
+        foreach ($images as $index => $imageFile) {
+            $path = $imageFile->store('products', 'public'); // storage/app/public/products
+
+            $product->images()->create([
+                'image_path' => $path,
+                'is_primary' => $index === $primaryIndex ? 1 : 0,
+            ]);
         }
-    
+
         return response()->json(new ProductResource($product), 201);
     }
-    
 
     /**
      * Update an existing product.
      */
     public function update(ProductUpdateRequest $request, int $id): JsonResponse
     {
-        $product = $this->productRepository->find($id);
-
+        $product = $this->productRepository->find($id, ['images']);
+    
         if (!$product) {
             return response()->json(['message' => 'Product not found'], 404);
         }
-
-        $product = $this->productRepository->update($request->validated(), $id);
-
-        return response()->json(new ProductResource($product));
-    }
+    
+        // ✅ 1. Update product fields
+        $updatedProduct = $this->productRepository->update($request->validated(), $id);
+    
+        // ✅ 2. Handle new image uploads
+        $imagesInput = $request->file('images', []);
+        $primaryIndex = (int) $request->input('primary_image_index', 0);
+    
+        if ($imagesInput && count($imagesInput) > 0) {
+            // Remove existing is_primary flags
+            $product->images()->update(['is_primary' => false]);
+    
+            foreach ($imagesInput as $index => $file) {
+                $path = $file->store('products', 'public');
+    
+                $product->images()->create([
+                    'image_path' => $path,
+                    'is_primary' => $index === $primaryIndex,
+                ]);
+            }
+        } else {
+            // ✅ If no new images uploaded, preserve existing but update primary flag
+            $existingImages = $product->images()->get();
+            if ($existingImages->count() > 0) {
+                $existingImages->each(fn($img) => $img->update(['is_primary' => false]));
+                $existingImages[$primaryIndex] ??= $existingImages->first();
+                $existingImages[$primaryIndex]->update(['is_primary' => true]);
+            }
+        }
+    
+        return response()->json(new ProductResource($updatedProduct->fresh(['category', 'images'])));
+    }   
 
     /**
      * Delete a product.

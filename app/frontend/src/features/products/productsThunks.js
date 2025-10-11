@@ -10,8 +10,8 @@ export const fetchProducts = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/api/products");
-      console.log("✅ API raw response:", response);
-      console.log("✅ API response.data:", response.data);
+      // console.log("✅ API raw response:", response);
+      // console.log("✅ API response.data:", response.data);
       return response.data;
     } catch (error) {
       console.error("❌ Fetch products error:", error);
@@ -48,15 +48,21 @@ export const createProduct = createAsyncThunk(
     try {
       const formData = new FormData();
       formData.append("title", productData.title);
-      formData.append("description", productData.description);ProductStoreRequest
+      formData.append("description", productData.description);
       formData.append("price", productData.price);
       formData.append("category_id", productData.category_id);
+      formData.append("stock", productData.stock); // ✅ Send stock
 
-      // Append each image
-      productData.images.forEach((img, index) => {
-        formData.append(`images[${index}]`, img.file); // ✅ Laravel will read images[] as an array
-        formData.append(`is_primary[${index}]`, img.is_primary ? 1 : 0);
+      // Only append files
+      productData.images.forEach((img) => {
+        if (img.file) formData.append("images[]", img.file);
       });
+
+      // Send primary image index
+      const primaryIndex = productData.images.findIndex(
+        (img) => img.is_primary
+      );
+      formData.append("primary_image_index", primaryIndex);
 
       const response = await api.post("/api/products", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -71,7 +77,6 @@ export const createProduct = createAsyncThunk(
   }
 );
 
-
 /**
  * Update existing product
  */
@@ -79,7 +84,31 @@ export const updateProduct = createAsyncThunk(
   "products/update",
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/api/products/${id}`, data);
+      const formData = new FormData();
+
+      if (data.title) formData.append("title", data.title);
+      if (data.description) formData.append("description", data.description);
+      if (data.price !== undefined) formData.append("price", data.price);
+      if (data.category_id) formData.append("category_id", data.category_id);
+      if (data.stock !== undefined) formData.append("stock", data.stock);
+
+      // Images
+      if (data.images?.length) {
+        data.images.forEach((img) => {
+          if (img.file) formData.append("images[]", img.file);
+        });
+        const primaryIndex = data.images.findIndex((img) => img.is_primary);
+        formData.append("primary_image_index", primaryIndex);
+      }
+
+      const response = await api.post(
+        `/api/products/${id}?_method=PUT`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
       return response.data;
     } catch (error) {
       return rejectWithValue(

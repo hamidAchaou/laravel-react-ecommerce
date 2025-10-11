@@ -4,7 +4,9 @@ namespace App\Repositories;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 abstract class BaseRepository
 {
@@ -16,7 +18,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Get the associated model class name.
+     * Define the model class name.
      */
     abstract protected function model(): string;
 
@@ -29,15 +31,23 @@ abstract class BaseRepository
     }
 
     /**
-     * Get all records, with optional eager loading.
+     * Base query builder.
      */
-    public function all(array $with = []): \Illuminate\Support\Collection
+    protected function query(): Builder
     {
-        return $this->model->with($with)->get();
+        return $this->model->newQuery();
     }
 
     /**
-     * Get paginated records with optional filters, relations, and search.
+     * Get all records, with optional relations.
+     */
+    public function all(array $with = []): Collection
+    {
+        return $this->query()->with($with)->get();
+    }
+
+    /**
+     * Get paginated data with filters, search, and relations.
      */
     public function getAllPaginate(
         array $filters = [],
@@ -53,7 +63,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Get all filtered and searched records without pagination.
+     * Get filtered and searched data without pagination.
      */
     public function search(
         array $filters = [],
@@ -61,18 +71,18 @@ abstract class BaseRepository
         array $searchableFields = [],
         string $orderBy = 'created_at',
         string $direction = 'desc'
-    ): \Illuminate\Support\Collection {
+    ): Collection {
         return $this->buildFilteredQuery($filters, $with, $searchableFields)
             ->orderBy($orderBy, $direction)
             ->get();
     }
 
     /**
-     * Find a record by ID or fail.
+     * Find a record by ID or return null.
      */
     public function find(mixed $id, array $with = []): ?Model
     {
-        $query = $this->model->newQuery();
+        $query = $this->query();
 
         if (!empty($with)) {
             $query->with($with);
@@ -81,11 +91,26 @@ abstract class BaseRepository
         return $query->find($id);
     }
 
-
-    public function create(array $data)
+    /**
+     * Find a record or fail.
+     */
+    public function findOrFail(mixed $id, array $with = []): Model
     {
-        $record = $this->model->create($data);
-        return $record->fresh();
+        $query = $this->query();
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->findOrFail($id);
+    }
+
+    /**
+     * Create a new record.
+     */
+    public function create(array $data): Model
+    {
+        return $this->model->create($data)->fresh();
     }
 
     /**
@@ -93,33 +118,38 @@ abstract class BaseRepository
      */
     public function update(array $data, mixed $id): Model
     {
-        $record = $this->find($id);
+        $record = $this->findOrFail($id);
         $record->update($data);
 
-        return $record;
+        return $record->refresh();
     }
 
     /**
      * Delete a record by ID.
      */
-    public function delete(mixed $id): int
+    public function delete(mixed $id): bool
     {
-        return $this->model->destroy($id);
+        $record = $this->find($id);
+        if (!$record) {
+            throw new ModelNotFoundException("Record with ID {$id} not found.");
+        }
+
+        return (bool) $record->delete();
     }
 
     /**
-     * Build a query with filters and optional search.
+     * Build query with filters and search.
      */
     protected function buildFilteredQuery(
         array $filters = [],
         array $with = [],
         array $searchableFields = []
     ): Builder {
-        $query = $this->model->with($with);
+        $query = $this->query()->with($with);
 
-        // 🔍 Search
+        // 🔍 Keyword search
         if (!empty($filters['search']) && !empty($searchableFields)) {
-            $keyword = $filters['search'];
+            $keyword = trim($filters['search']);
             $query->where(function (Builder $q) use ($keyword, $searchableFields) {
                 foreach ($searchableFields as $field) {
                     $q->orWhere($field, 'LIKE', "%{$keyword}%");
@@ -127,13 +157,12 @@ abstract class BaseRepository
             });
         }
 
-        // 🔎 Field filters
+        // 🔎 Other filters
         foreach ($filters as $field => $value) {
             if ($value === null || $field === 'search') {
                 continue;
             }
 
-            // Custom price range filter
             if ($field === 'min_price') {
                 $query->where('price', '>=', $value);
             } elseif ($field === 'max_price') {
@@ -147,35 +176,22 @@ abstract class BaseRepository
     }
 
     /**
-     * Get the total number of records, optionally filtered.
-     *
-     * @param array $filters Optional filters to apply
-     * @return int
+     * Count total records (with optional filters).
      */
     public function countAll(array $filters = []): int
     {
-        if (empty($filters)) {
-            return $this->model->count();
-        }
-
-        // Apply filters using the existing buildFilteredQuery method
-        return $this->buildFilteredQuery($filters)->count();
+        return empty($filters)
+            ? $this->model->count()
+            : $this->buildFilteredQuery($filters)->count();
     }
 
     /**
-     * Get the sum of a column, optionally filtered.
-     *
-     * @param string $column The column to sum
-     * @param array  $filters Optional filters to apply
-     * @return float|int
+     * Sum a column (with optional filters).
      */
     public function sumAll(string $column, array $filters = []): float|int
     {
-        if (empty($filters)) {
-            return $this->model->sum($column);
-        }
-
-        // Apply filters using existing buildFilteredQuery
-        return $this->buildFilteredQuery($filters)->sum($column);
+        return empty($filters)
+            ? $this->model->sum($column)
+            : $this->buildFilteredQuery($filters)->sum($column);
     }
 }

@@ -3,3 +3,4 @@ export { default as AppButton } from "./Button/AppButton";
 export { default as AppInput } from "./Input/AppInput";
 export { default as AppSelect } from "./Select/AppSelect";
 export { default as AppTextarea } from "./Textarea/AppTextarea";
+export { default as AppMultiSelect } from "./Select/AppMultiSelect";
