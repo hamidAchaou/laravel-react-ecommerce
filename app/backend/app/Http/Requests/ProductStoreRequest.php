@@ -8,16 +8,21 @@ class ProductStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Add authorization logic if needed
+        return true;
     }
 
     public function rules(): array
-    {
-        return [
-            'name'        => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'price'       => ['required', 'numeric', 'min:0'],
-            'category_id' => ['required', 'exists:categories,id'],
-        ];
-    }
+{
+    return [
+        'title' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'required|numeric',
+        'category_id' => 'required|exists:categories,id',
+        'images' => 'nullable|array',
+        'images.*' => 'file|image|max:2048',
+        'is_primary' => 'nullable|array',
+        'is_primary.*' => 'nullable|boolean',
+    ];
+}
+
 }

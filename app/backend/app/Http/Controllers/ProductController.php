@@ -65,9 +65,22 @@ class ProductController extends Controller
     public function store(ProductStoreRequest $request): JsonResponse
     {
         $product = $this->productRepository->create($request->validated());
-
+    
+        // ✅ Save images
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $imageFile) {
+                $path = $imageFile->store('products', 'public'); // storage/app/public/products
+    
+                $product->images()->create([
+                    'image_path' => $path,
+                    'is_primary' => $request->is_primary[$index] ?? 0,
+                ]);
+            }
+        }
+    
         return response()->json(new ProductResource($product), 201);
     }
+    
 
     /**
      * Update an existing product.

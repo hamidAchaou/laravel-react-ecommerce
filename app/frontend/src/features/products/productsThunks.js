@@ -46,7 +46,22 @@ export const createProduct = createAsyncThunk(
   "products/create",
   async (productData, { rejectWithValue }) => {
     try {
-      const response = await api.post("/api/products", productData);
+      const formData = new FormData();
+      formData.append("title", productData.title);
+      formData.append("description", productData.description);ProductStoreRequest
+      formData.append("price", productData.price);
+      formData.append("category_id", productData.category_id);
+
+      // Append each image
+      productData.images.forEach((img, index) => {
+        formData.append(`images[${index}]`, img.file); // ✅ Laravel will read images[] as an array
+        formData.append(`is_primary[${index}]`, img.is_primary ? 1 : 0);
+      });
+
+      const response = await api.post("/api/products", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -55,6 +70,7 @@ export const createProduct = createAsyncThunk(
     }
   }
 );
+
 
 /**
  * Update existing product
