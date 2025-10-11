@@ -14,9 +14,10 @@ class ProductResource extends JsonResource
     {
         return [
             'id'          => $this->id,
-            'title'        => $this->title,
+            'title'       => $this->title,
             'description' => $this->description,
             'price'       => $this->price,
+            'stock'       => $this->stock,
             'category'    => new CategoryResource($this->whenLoaded('category')),
             'images'      => ProductImageResource::collection($this->whenLoaded('images')),
             'created_at'  => $this->created_at?->toDateTimeString(),
