@@ -53,8 +53,7 @@ export default function ProductForm({
       description: "",
       price: "",
       stock: 0,
-      category_id:
-        defaultValues?.category?.id?.toString() || "",
+      category_id: defaultValues?.category?.id?.toString() || "",
       images: [],
       ...defaultValues,
     },
@@ -107,14 +106,22 @@ export default function ProductForm({
   /** Remove image */
   const handleRemoveImage = (index) => {
     const updated = images.filter((_, i) => i !== index);
-    setValue("images", updated);
-
-    if (mainImage === images[index]?.preview && updated.length > 0) {
-      setMainImage(updated[0].preview);
-    } else if (updated.length === 0) {
-      setMainImage(null);
+  
+    let newMain = null;
+    if (updated.length > 0) {
+      const primary = updated.find((img) => img.is_primary);
+      if (primary) {
+        newMain = primary.preview || primary.image_path;
+      } else {
+        updated[0].is_primary = true;
+        newMain = updated[0].preview || updated[0].image_path;
+      }
     }
+  
+    setValue("images", updated);
+    setMainImage(newMain);
   };
+  
 
   /** Set main image */
   const handleSetMainImage = (img) => {
@@ -130,8 +137,8 @@ export default function ProductForm({
   const submitForm = async (data) => {
     try {
       const primaryIndex = data.images.findIndex((img) => img.is_primary);
-      data.primary_image_index = primaryIndex >= 0 ? primaryIndex : 0;
-
+      data.primary_image_index = primaryIndex >= 0 ? primaryIndex : null; // null إذا لا يوجد صور
+  
       await onSubmit(data);
       enqueueSnackbar(
         `Product ${mode === "create" ? "created" : "updated"} successfully!`,
@@ -144,6 +151,7 @@ export default function ProductForm({
       });
     }
   };
+  
 
   /** Category options */
   const categoryOptions =
@@ -287,6 +295,7 @@ export default function ProductForm({
                 )}
 
                 {/* Thumbnails */}
+                {/* Thumbnails */}
                 {images?.length > 0 && (
                   <Grid container spacing={2} mt={2} justifyContent="center">
                     {images.map((img, idx) => (
@@ -301,14 +310,15 @@ export default function ProductForm({
                               borderRadius: 2,
                               boxShadow: 1,
                               cursor: "pointer",
-                              border:
-                                img.is_primary
-                                  ? `2px solid ${theme.palette.primary.main}`
-                                  : "2px solid transparent",
+                              border: img.is_primary
+                                ? `2px solid ${theme.palette.primary.main}`
+                                : "2px solid transparent",
                               transition: "all 0.2s",
                             }}
                             onClick={() => handleSetMainImage(img)}
                           />
+
+                          {/* Delete Button */}
                           <IconButton
                             size="small"
                             sx={{
@@ -330,6 +340,21 @@ export default function ProductForm({
                           >
                             <Delete fontSize="small" />
                           </IconButton>
+
+                          {/* Primary Label */}
+                          {img.is_primary && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                mt: 1,
+                                display: "block",
+                                color: theme.palette.primary.main,
+                                fontWeight: 600,
+                              }}
+                            >
+                              Primary
+                            </Typography>
+                          )}
                         </Box>
                       </Grid>
                     ))}
