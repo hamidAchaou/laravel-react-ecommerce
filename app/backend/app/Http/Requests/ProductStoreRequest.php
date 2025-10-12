@@ -12,18 +12,25 @@ class ProductStoreRequest extends FormRequest
     }
 
     public function rules(): array
-{
-    return [
-        'title' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'price' => 'required|numeric',
-        'category_id' => 'required|exists:categories,id',
-        'stock' => 'required|integer|min:0',
-        'images' => 'nullable|array',
-        'images.*' => 'file|image|max:2048',
-        'is_primary' => 'nullable|array',
-        'is_primary.*' => 'nullable|boolean',
-    ];
-}
+    {
+        return [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric',
+            'category_id' => 'required|exists:categories,id',
+            'stock' => 'required|integer|min:0',
 
+            // files
+            'images' => 'nullable|array',
+            'images.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:2048',
+
+            // existing image ids (when editing)
+            'existing_image_ids' => 'nullable|array',
+            'existing_image_ids.*' => 'integer|exists:product_images,id',
+
+            // primary pointers
+            'primary_image_id' => 'nullable|integer',
+            'primary_new_index' => 'nullable|integer|min:0',
+        ];
+    }
 }

@@ -9,10 +9,8 @@ export const fetchProducts = createAsyncThunk(
   "products/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/products");
-      // console.log("✅ API raw response:", response);
-      // console.log("✅ API response.data:", response.data);
-      return response.data;
+      const { data } = await api.get("/api/products");
+      return data;
     } catch (error) {
       console.error("❌ Fetch products error:", error);
       return rejectWithValue(
@@ -29,8 +27,8 @@ export const fetchProductById = createAsyncThunk(
   "products/fetchById",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/products/${id}`);
-      return response.data;
+      const { data } = await api.get(`/api/products/${id}`);
+      return data;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch product"
@@ -40,36 +38,46 @@ export const fetchProductById = createAsyncThunk(
 );
 
 /**
- * Create new product
+ * Create a new product
  */
 export const createProduct = createAsyncThunk(
   "products/create",
   async (productData, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      formData.append("title", productData.title);
-      formData.append("description", productData.description);
-      formData.append("price", productData.price);
-      formData.append("category_id", productData.category_id);
-      formData.append("stock", productData.stock); // ✅ Send stock
 
-      // Only append files
-      productData.images.forEach((img) => {
-        if (img.file) formData.append("images[]", img.file);
-      });
+      // Required fields - append as proper types
+      formData.append("title", String(productData.title));
+      formData.append("price", Number(productData.price).toString());
+      formData.append("stock", Number(productData.stock).toString());
+      formData.append("category_id", Number(productData.category_id).toString());
+      
+      if (productData.description) {
+        formData.append("description", String(productData.description));
+      }
 
-      // Send primary image index
-      const primaryIndex = productData.images.findIndex(
-        (img) => img.is_primary
-      );
-      formData.append("primary_image_index", primaryIndex);
+      // Images
+      if (productData.images?.length > 0) {
+        const newFiles = productData.images.filter((img) => img.file);
+        
+        newFiles.forEach((img) => {
+          formData.append("images[]", img.file);
+        });
 
-      const response = await api.post("/api/products", formData, {
+        // Determine which image is primary
+        const primaryIndex = productData.images.findIndex((img) => img.is_primary && img.file);
+        if (primaryIndex >= 0) {
+          formData.append("primary_new_index", primaryIndex.toString());
+        }
+      }
+
+      const { data } = await api.post("/api/products", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      return response.data;
+      return data;
     } catch (error) {
+      // console.error("❌ Create product error:", error.response?.data || error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to create product"
       );
@@ -86,31 +94,40 @@ export const updateProduct = createAsyncThunk(
     try {
       const formData = new FormData();
 
-      if (data.title) formData.append("title", data.title);
-      if (data.description) formData.append("description", data.description);
-      if (data.price !== undefined) formData.append("price", data.price);
-      if (data.category_id) formData.append("category_id", data.category_id);
-      if (data.stock !== undefined) formData.append("stock", data.stock);
+      // Basic fields
+      if (data.title) formData.append("title", String(data.title));
+      if (data.description) formData.append("description", String(data.description));
+      if (data.price !== undefined) formData.append("price", Number(data.price).toString());
+      if (data.stock !== undefined) formData.append("stock", Number(data.stock).toString());
+      if (data.category_id) formData.append("category_id", Number(data.category_id).toString());
 
-      // Images
+      // Handle images
       if (data.images?.length) {
-        data.images.forEach((img) => {
-          if (img.file) formData.append("images[]", img.file);
-        });
-        const primaryIndex = data.images.findIndex((img) => img.is_primary);
-        formData.append("primary_image_index", primaryIndex);
+        const existingIds = data.images.filter((img) => img.id).map((img) => img.id);
+        const newFiles = data.images.filter((img) => img.file);
+
+        existingIds.forEach((imgId) => formData.append("existing_image_ids[]", imgId.toString()));
+        newFiles.forEach((img) => formData.append("images[]", img.file));
+
+        // Primary image
+        const primaryExisting = data.images.find((img) => img.is_primary && img.id);
+        const primaryNewIndex = data.images.findIndex((img) => img.is_primary && img.file);
+
+        if (primaryExisting) {
+          formData.append("primary_image_id", primaryExisting.id.toString());
+        } else if (primaryNewIndex >= 0) {
+          formData.append("primary_new_index", primaryNewIndex.toString());
+        }
       }
 
-      const response = await api.post(
-        `/api/products/${id}?_method=PUT`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      // Laravel expects PUT method spoofing
+      const { data: res } = await api.post(`/api/products/${id}?_method=PUT`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      return response.data;
+      return res;
     } catch (error) {
+      console.error("❌ Update product error:", error.response?.data || error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to update product"
       );
@@ -126,8 +143,9 @@ export const deleteProduct = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       await api.delete(`/api/products/${id}`);
-      return id; // Return the deleted ID
+      return id;
     } catch (error) {
+      console.error("❌ Delete product error:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete product"
       );

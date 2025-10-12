@@ -20,12 +20,14 @@ class ProductUpdateRequest extends FormRequest
             'stock' => ['sometimes', 'integer', 'min:0'],
             'category_id' => ['sometimes', 'exists:categories,id'],
 
-            // Image uploads
             'images' => ['nullable', 'array'],
             'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
 
-            // Primary image index
-            'primary_image_index' => ['nullable', 'integer', 'min:0'],
+            'existing_image_ids' => ['nullable', 'array'],
+            'existing_image_ids.*' => ['nullable', 'integer', 'exists:product_images,id'],
+
+            'primary_image_id' => ['nullable', 'integer'],
+            'primary_new_index' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
