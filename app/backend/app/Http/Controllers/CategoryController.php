@@ -48,7 +48,7 @@ class CategoryController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $category = $this->categoryRepository->find($id, ['parent']);
+        $category = $this->categoryRepository->findOrFail($id, ['parent']);
 
         if (!$category) {
             return response()->json(['message' => 'Category not found'], 404);

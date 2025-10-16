@@ -9,6 +9,8 @@ import {
   Stack,
   CircularProgress,
   Paper,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
@@ -29,13 +31,14 @@ export default function Products() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alert, setAlert] = useState({ open: false, message: "", severity: "success" });
 
-  // ✅ Fetch products once on mount (if empty)
+  // ✅ Fetch products on mount
   useEffect(() => {
     if (!products.length) dispatch(fetchProducts());
   }, [dispatch, products.length]);
 
-  // ✅ Columns definition (memoized)
+  // ✅ Table Columns
   const columns = useMemo(
     () => [
       {
@@ -116,7 +119,7 @@ export default function Products() {
     []
   );
 
-  // ✅ Search Filter
+  // ✅ Filter by search term
   const filteredRows = useMemo(() => {
     if (!searchTerm) return products;
     const term = searchTerm.toLowerCase();
@@ -127,7 +130,7 @@ export default function Products() {
     );
   }, [products, searchTerm]);
 
-  // ✅ Handlers
+  // ✅ Event handlers
   const handleAddProduct = useCallback(
     () => navigate("/admin/products/create"),
     [navigate]
@@ -147,8 +150,18 @@ export default function Products() {
 
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
-    await dispatch(deleteProduct(deleteTarget.id));
-    setDeleteTarget(null);
+    try {
+      await dispatch(deleteProduct(deleteTarget.id)).unwrap();
+      setAlert({ open: true, message: "Product deleted successfully", severity: "success" });
+    } catch (err) {
+      setAlert({
+        open: true,
+        message: err || "Failed to delete product",
+        severity: "error",
+      });
+    } finally {
+      setDeleteTarget(null);
+    }
   }, [dispatch, deleteTarget]);
 
   const handleExport = useCallback(() => {
@@ -165,7 +178,6 @@ export default function Products() {
     const csvString = [headers.join(","), ...csvRows].join("\n");
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.download = "products_export.csv";
@@ -173,13 +185,12 @@ export default function Products() {
     URL.revokeObjectURL(url);
   }, [products]);
 
-  // ✅ Loading & Error UI
+  const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
+
+  // ✅ Loading / Error UI
   if (loading)
     return (
-      <Box
-        className="flex justify-center items-center h-[70vh] bg-white"
-        sx={{ gap: 2 }}
-      >
+      <Box className="flex justify-center items-center h-[70vh]" sx={{ gap: 2 }}>
         <CircularProgress size={28} />
         <Typography variant="body1" color="text.secondary">
           Loading products...
@@ -194,10 +205,15 @@ export default function Products() {
       </Typography>
     );
 
-  // ✅ Main Render
+  // ✅ Render
   return (
     <Box sx={{ p: 3 }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={2}
+      >
         <Typography variant="h4" fontWeight={700} color="text.primary">
           Products Management
         </Typography>
@@ -235,6 +251,22 @@ export default function Products() {
         handleClose={() => setDeleteTarget(null)}
         handleDeleteConfirm={confirmDelete}
       />
+
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={3000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

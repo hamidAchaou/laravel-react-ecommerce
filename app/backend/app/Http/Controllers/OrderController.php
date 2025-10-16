@@ -51,7 +51,7 @@ class OrderController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $order = $this->orderRepository->find($id, ['customer', 'orderItems.product']);
+        $order = $this->orderRepository->findOrFail($id, ['client', 'orderItems.product']);
 
         if (!$order) {
             return response()->json(['message' => 'Order not found'], 404);

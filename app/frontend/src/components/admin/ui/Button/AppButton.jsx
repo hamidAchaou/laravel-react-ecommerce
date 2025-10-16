@@ -2,24 +2,28 @@
 import React from "react";
 import { Button, CircularProgress, useTheme } from "@mui/material";
 
-const AppButton = React.memo(
-  ({
-    children,
-    variant = "contained",
-    color = "primary",
-    loading = false,
-    disabled = false,
-    startIcon,
-    endIcon,
-    size = "medium",
-    fullWidth = false,
-    className = "",
-    ...props
-  }) => {
+const AppButton = React.forwardRef(
+  (
+    {
+      children,
+      variant = "contained",
+      color = "primary",
+      loading = false,
+      disabled = false,
+      startIcon,
+      endIcon,
+      size = "medium",
+      fullWidth = false,
+      className = "",
+      ...props
+    },
+    ref
+  ) => {
     const theme = useTheme();
 
     return (
       <Button
+        ref={ref}
         variant={variant}
         color={color}
         size={size}
@@ -56,4 +60,4 @@ const AppButton = React.memo(
   }
 );
 
-export default AppButton;
+export default React.memo(AppButton);
