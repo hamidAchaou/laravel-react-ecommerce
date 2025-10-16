@@ -1,129 +1,287 @@
 // src/pages/admin/Orders/Orders.jsx
-import React, { useEffect, useMemo, useCallback, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Box, CircularProgress, Snackbar, Alert, Button } from "@mui/material";
-import { fetchOrders, deleteOrderAsync, updateOrder } from "../../../features/orders/ordersThunks";
-import OrdersDashboardStats from "../../../components/admin/Orders/OrdersDashboardStats";
-import OrdersTable from "../../../components/admin/Orders/OrdersTable";
-import OrderDetailsModal from "../../../components/admin/Orders/OrderDetailsModal";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  Box,
+  Typography,
+  Chip,
+  Stack,
+  CircularProgress,
+  Paper,
+  Snackbar,
+  Alert,
+  MenuItem,
+  TextField,
+  LinearProgress,
+  Tooltip,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchOrders,
+  deleteOrderAsync,
+} from "../../../features/orders/ordersThunks";
+import DataTable from "../../../components/admin/DataTable/DataTable";
+import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
 import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
-import { BRAND_COLORS } from "../../../theme/colors";
 
 export default function Orders() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const { byId, allIds, loading, error } = useSelector((state) => state.orders);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alert, setAlert] = useState({ open: false, message: "", severity: "success" });
 
   const orders = useMemo(() => allIds.map((id) => byId[id]), [allIds, byId]);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [alert, setAlert] = useState({ open: false, message: "", severity: "success" });
-  const [darkMode, setDarkMode] = useState(false);
-
-  const colors = darkMode ? BRAND_COLORS.dark : BRAND_COLORS.light;
-
+  // ✅ Fetch orders once on mount
   useEffect(() => {
-    dispatch(fetchOrders());
-  }, [dispatch]);
+    if (!allIds.length) dispatch(fetchOrders());
+  }, [dispatch, allIds.length]);
 
-  // Statistics
-  const statistics = useMemo(() => {
-    const total = orders.length;
-    const pending = orders.filter((o) => o.status === "pending").length;
-    const completed = orders.filter((o) => o.status === "completed").length;
-    const cancelled = orders.filter((o) => o.status === "cancelled").length;
-    const revenue = orders
-      .filter((o) => o.status === "completed")
-      .reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
-    return { total, pending, completed, cancelled, revenue };
-  }, [orders]);
+  // ✅ Status color mapping
+  const statusColors = {
+    pending: "warning",
+    processing: "info",
+    paid: "success",
+    shipped: "primary",
+    delivered: "success",
+    cancelled: "error",
+    refunded: "secondary",
+  };
 
-  // Filtered Orders
-  const filteredOrders = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return orders.filter(
-      (o) =>
-        o.customer_name?.toLowerCase().includes(term) ||
-        o.email?.toLowerCase().includes(term) ||
-        o.status?.toLowerCase().includes(term) ||
-        o.total?.toString().includes(term)
-    );
-  }, [orders, searchTerm]);
-
-  const handleStatusChange = useCallback(
-    async (orderId, status) => {
-      try {
-        await dispatch(updateOrder({ id: orderId, data: { status } })).unwrap();
-        setAlert({ open: true, message: `Order marked as ${status}`, severity: "success" });
-      } catch {
-        setAlert({ open: true, message: "Status update failed", severity: "error" });
-      }
-    },
-    [dispatch]
+  // ✅ Columns for DataTable
+  const columns = useMemo(
+    () => [
+      {
+        field: "customer_name",
+        headerName: "Client",
+        flex: 1,
+        minWidth: 160,
+        renderCell: (params) => (
+          <Typography variant="body2" fontWeight={500}>
+            {params.value || "—"}
+          </Typography>
+        ),
+      },
+      {
+        field: "items_count",
+        headerName: "Items",
+        minWidth: 100,
+        align: "center",
+        headerAlign: "center",
+      },
+      {
+        field: "total",
+        headerName: "Total (MAD)",
+        minWidth: 140,
+        align: "right",
+        headerAlign: "right",
+        renderCell: (params) => (
+          <Typography variant="body2" fontWeight={500}>
+            {params.value ? `${params.value.toFixed(2)} MAD` : "—"}
+          </Typography>
+        ),
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        minWidth: 150,
+        renderCell: (params) => (
+          <Chip
+            label={params.value}
+            color={statusColors[params.value?.toLowerCase()] || "default"}
+            size="small"
+            sx={{ textTransform: "capitalize", fontWeight: 500 }}
+          />
+        ),
+      },
+      {
+        field: "created_at",
+        headerName: "Created At",
+        minWidth: 170,
+        valueGetter: (params) =>
+          params.value
+            ? new Date(params.value).toLocaleString("fr-FR")
+            : "—",
+      },
+    ],
+    []
   );
 
-  const handleDelete = useCallback(async () => {
+  // ✅ Filter and search
+  const filteredRows = useMemo(() => {
+    return orders.filter((order) => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch =
+        order.customer_name?.toLowerCase().includes(term) ||
+        order.status?.toLowerCase().includes(term);
+      const matchesStatus =
+        !statusFilter || order.status?.toLowerCase() === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, searchTerm, statusFilter]);
+
+  // ✅ Handlers
+  const handleView = useCallback(
+    (row) => navigate(`/admin/orders/${row.id}`),
+    [navigate]
+  );
+
+  const handleEdit = useCallback(
+    (row) => navigate(`/admin/orders/edit/${row.id}`),
+    [navigate]
+  );
+
+  const handleDelete = useCallback((row) => setDeleteTarget(row), []);
+
+  const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
       await dispatch(deleteOrderAsync(deleteTarget.id)).unwrap();
-      setAlert({ open: true, message: "Order deleted successfully", severity: "success" });
-    } catch {
-      setAlert({ open: true, message: "Failed to delete order", severity: "error" });
+      setAlert({
+        open: true,
+        message: "Order deleted successfully",
+        severity: "success",
+      });
+    } catch (err) {
+      setAlert({
+        open: true,
+        message: err || "Failed to delete order",
+        severity: "error",
+      });
     } finally {
       setDeleteTarget(null);
     }
-  }, [deleteTarget, dispatch]);
+  }, [dispatch, deleteTarget]);
 
-  if (loading && orders.length === 0) return <CircularProgress size={60} />;
+  const handleExport = useCallback(() => {
+    if (!orders.length) return;
 
-  if (error) return <Alert severity="error">{error}</Alert>;
+    const headers = ["ID", "Client", "Email", "Items", "Total", "Status"];
+    const csvRows = orders.map(
+      (o) =>
+        `${o.id},"${o.customer_name}","${o.email}",${o.items_count},${o.total},"${o.status}"`
+    );
+    const csvString = [headers.join(","), ...csvRows].join("\n");
 
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "orders_export.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [orders]);
+
+  const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
+
+  // ✅ Loading / Error UI
+  if (loading)
+    return (
+      <Box
+        className="flex justify-center items-center h-[70vh]"
+        sx={{ gap: 2 }}
+      >
+        <CircularProgress size={28} />
+        <Typography variant="body1" color="text.secondary">
+          Loading orders...
+        </Typography>
+      </Box>
+    );
+
+  if (error)
+    return (
+      <Typography variant="h6" align="center" color="error" mt={4}>
+        {error}
+      </Typography>
+    );
+
+  // ✅ Render UI
   return (
-    <Box sx={{ p: 3, bgcolor: colors.background, minHeight: "100vh" }}>
-      <Button onClick={() => setDarkMode(!darkMode)}>{darkMode ? "Light" : "Dark"}</Button>
+    <Box sx={{ p: 3 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={2}
+      >
+        <Typography variant="h4" fontWeight={700} color="text.primary">
+          Orders Management
+        </Typography>
+      </Stack>
 
-      {/* Statistics */}
-      <OrdersDashboardStats statistics={statistics} colors={colors} />
+      {/* Toolbar */}
+      <DataTableToolbar
+        title="Orders"
+        onSearchChange={setSearchTerm}
+        onExportClick={handleExport}
+        searchPlaceholder="Search by client or status..."
+        hideAddButton
+      />
 
-      {/* Orders Table */}
-      <OrdersTable
-        orders={filteredOrders}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        onViewDetails={(order) => {
-          setSelectedOrder(order);
-          setDetailsModalOpen(true);
+      {/* Filters */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Filter by Status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          sx={{ width: 220 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          {Object.keys(statusColors).map((status) => (
+            <MenuItem key={status} value={status}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+
+      {/* Table */}
+      <Paper
+        sx={{
+          mt: 1,
+          p: 1,
+          borderRadius: 2,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
         }}
-        onDelete={(order) => setDeleteTarget(order)}
-        onStatusChange={handleStatusChange}
-        colors={colors}
-      />
+      >
+        <DataTable
+          columns={columns}
+          rows={filteredRows}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </Paper>
 
-      {/* Modals */}
-      <OrderDetailsModal
-        open={detailsModalOpen}
-        onClose={() => setDetailsModalOpen(false)}
-        order={selectedOrder}
-        onStatusChange={(status) => handleStatusChange(selectedOrder.id, status)}
-        darkMode={darkMode}
-      />
-
+      {/* Delete Modal */}
       <DeleteConfirmationModal
         open={!!deleteTarget}
         handleClose={() => setDeleteTarget(null)}
-        handleDeleteConfirm={handleDelete}
+        handleDeleteConfirm={confirmDelete}
       />
 
-      {/* ✅ Fixed Snackbar */}
+      {/* Snackbar Alerts */}
       <Snackbar
         open={alert.open}
-        autoHideDuration={4000}
-        onClose={() => setAlert({ ...alert, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }} // ✅ Correct syntax
+        autoHideDuration={3000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={alert.severity || "info"}>{alert.message}</Alert>
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {alert.message}
+        </Alert>
       </Snackbar>
     </Box>
   );
