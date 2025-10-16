@@ -1,32 +1,32 @@
-import { createAsyncThunk } from "@reduxjs/toolkit";
-import api from "../../api/axios";
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import api from '../../api/axios';
 
-/*
- * fetch all customers
-* */
+/**
+ * Fetch all customers (paginated or not)
+ */
 export const fetchCustomers = createAsyncThunk(
-    'customers/fetchAll',
-    async (_, {rejectWithValue}) => {
-        try {
-            const {data} = await api.get('/api/customers');
+  'customers/fetchAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get('/api/clients'); // ✅ correct endpoint
 
-            // Laravel API: { data: [...] }
-            if (!data?.data) throw new Error('Invalid API response');
+      if (!data?.data) throw new Error('Invalid API response format');
 
-            return data.data.map(customer => ({
-                id: customer.id,
-                name: customer.name || '—',
-                email: customer.email || '—',
-                phone: customer.phone || '—',
-                total_orders: customer.total_orders ?? 0,
-                total_spent: parseFloat(customer.total_spent ?? 0),
-                created_at: customer.created_at,
-            }));
-        } catch (error) {
-            console.error('❌ Fetch customers error:', error);
-            return rejectWithValue(
-                error.response?.data?.message || error.message || 'Failed to fetch customers'
-            );
-        }
+      return data.data.map((client) => ({
+        id: client.id,
+        name: client.user?.name || '—',
+        email: client.user?.email || '—',
+        phone: client.phone || '—',
+        address: client.full_address || '',
+        country: client.country?.name || '—',
+        city: client.city?.name || '—',
+        created_at: client.created_at,
+      }));
+    } catch (error) {
+      console.error('❌ Fetch customers error:', error);
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch customers'
+      );
     }
-)
+  }
+);

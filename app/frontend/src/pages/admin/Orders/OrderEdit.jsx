@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useSnackbar } from "notistack";
 import OrderForm from "./OrderForm";
-import { updateOrder } from "../../../features/orders/ordersThunks";
+import { fetchOrderById, updateOrder } from "../../../features/orders/ordersThunks";
 
 export default function OrderEdit() {
   const { id } = useParams();
@@ -12,23 +12,31 @@ export default function OrderEdit() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
-  const { items: orders } = useSelector((state) => state.orders);
+  const { currentOrder, loading } = useSelector((state) => state.orders || {});
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    const found = orders.find((o) => o.id === parseInt(id));
-    if (found) setOrder(found);
-  }, [id, orders]);
+    dispatch(fetchOrderById(id));
+  }, [dispatch, id]);
 
-  if (!order) return <div>Loading...</div>;
+  useEffect(() => {
+    if (currentOrder) {
+      setOrder({
+        ...currentOrder,
+        customer_id: currentOrder.customer_id || currentOrder.client?.id || "",
+      });
+    }
+  }, [currentOrder]);
+
+  if (loading || !order) return <div className="p-4 text-center animate-pulse">⏳ Loading order...</div>;
 
   const handleUpdate = async (data) => {
     try {
       await dispatch(updateOrder({ id: order.id, data })).unwrap();
-      enqueueSnackbar("Order updated successfully!", { variant: "success" });
+      enqueueSnackbar("✅ Order updated successfully!", { variant: "success" });
       navigate("/admin/orders");
     } catch (err) {
-      enqueueSnackbar(err.message || "Failed to update order", { variant: "error" });
+      enqueueSnackbar(err?.message || "❌ Failed to update order", { variant: "error" });
     }
   };
 

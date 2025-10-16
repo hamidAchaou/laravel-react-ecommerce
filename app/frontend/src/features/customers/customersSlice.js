@@ -1,31 +1,38 @@
-import {cretaeSlice} from '@reduxjs/toolkit';
-import {fetchCustomers} from './customersThunks';
+import { createSlice } from '@reduxjs/toolkit';
+import { fetchCustomers } from './customersThunks';
 
 const initialState = {
-    customers: [],
-    status: 'idle',
-    error: null
+  items: [],
+  status: 'idle', // idle | loading | succeeded | failed
+  error: null,
 };
 
-const customersSlice = cretaeSlice({
-    name: 'customers',
-    initialState,
-    reducers: {},
-    extraReducers: (builder) => {
-        builder
-            .addCase(fetchCustomers.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
-            })
-            .addCase(fetchCustomers.fulfilled, (state, action) => {
-                state.status = 'succeeded';
-                state.customers = action.payload; // already cleaned array
-            })
-            .addCase(fetchCustomers.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload || 'Unable to fetch customers';
-            });
-    }
-})
+const customersSlice = createSlice({
+  name: 'customers',
+  initialState,
+  reducers: {
+    clearCustomers: (state) => {
+      state.items = [];
+      state.status = 'idle';
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchCustomers.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchCustomers.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.items = action.payload;
+      })
+      .addCase(fetchCustomers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload || 'Unable to fetch customers';
+      });
+  },
+});
 
+export const { clearCustomers } = customersSlice.actions;
 export default customersSlice.reducer;

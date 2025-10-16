@@ -91,3 +91,22 @@ export const fetchOrderById = createAsyncThunk(
   }
 );
 
+/**
+ * ✅ Update Order
+ */
+export const updateOrder = createAsyncThunk(
+  "orders/update",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/api/orders/${id}`, data);
+      console.log("✅ Update order response:", response.data);
+      
+      return response.data; // Or adjust based on your backend response
+    } catch (error) {
+      console.error("❌ Update order error:", error);
+      return rejectWithValue(
+        error.response?.data?.message || error.message || "Failed to update order"
+      );
+    }
+  }
+);

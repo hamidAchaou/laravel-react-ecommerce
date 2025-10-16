@@ -27,3 +27,6 @@ Route::apiResource('categories', CategoryController::class);
 
 // Orders routes
 Route::apiResource('orders', OrderController::class);
+
+// Client routers
+Route::apiResource('clients', \App\Http\Controllers\ClientController::class);

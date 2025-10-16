@@ -27,7 +27,7 @@ export default function OrderDetails() {
 
   useEffect(() => {
     dispatch(fetchOrderById(id)).then((res) => {
-      console.log("✅ Fetched Order:", res.payload); // DEBUG
+      console.log("✅ Fetched Order:", res.payload);
       setOrder(res.payload);
     });
   }, [dispatch, id]);
@@ -58,7 +58,6 @@ export default function OrderDetails() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate("/admin/orders")}
@@ -69,19 +68,17 @@ export default function OrderDetails() {
         Back to Orders
       </Button>
 
-      {/* Title */}
       <Typography variant="h4" component="h1" fontWeight={700} mb={2}>
         Order #{order.id} Details
       </Typography>
 
-      {/* Order Info */}
       <Paper sx={{ p: 3, borderRadius: 2, mb: 3, boxShadow: 2 }}>
         <Stack spacing={1.5}>
-          <Typography><strong>Customer:</strong> {order.customer_name}</Typography>
-          <Typography><strong>Email:</strong> {order.email}</Typography>
-          <Typography><strong>Items Count:</strong> {order.items_count}</Typography>
-          <Typography><strong>Total:</strong> {order.total} MAD</Typography>
-          <Typography>
+          <Typography component="div"><strong>Customer:</strong> {order.customer_name}</Typography>
+          <Typography component="div"><strong>Email:</strong> {order.email}</Typography>
+          <Typography component="div"><strong>Items Count:</strong> {order.items_count}</Typography>
+          <Typography component="div"><strong>Total:</strong> {order.total} MAD</Typography>
+          <Typography component="div">
             <strong>Status:</strong>{" "}
             <Chip
               label={order.status}
@@ -94,14 +91,13 @@ export default function OrderDetails() {
               }}
             />
           </Typography>
-          <Typography>
+          <Typography component="div">
             <strong>Created At:</strong>{" "}
             {new Date(order.created_at).toLocaleString("fr-FR")}
           </Typography>
         </Stack>
       </Paper>
 
-      {/* ✅ Order Items */}
       <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 2 }}>
         <Typography variant="h6" mb={2}>
           Items
@@ -128,20 +124,20 @@ export default function OrderDetails() {
                 />
 
                 <Box sx={{ flex: 1, ml: 2 }}>
-                  <Typography fontWeight={600}>{item.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography component="div" fontWeight={600}>{item.name}</Typography>
+                  <Typography component="div" variant="body2" color="text.secondary">
                     {item.quantity} × {item.price} MAD
                   </Typography>
                 </Box>
 
-                <Typography fontWeight={600}>
+                <Typography component="div" fontWeight={600}>
                   {(item.quantity * item.price).toFixed(2)} MAD
                 </Typography>
               </Box>
             ))}
           </Stack>
         ) : (
-          <Typography color="text.secondary">No items in this order.</Typography>
+          <Typography color="text.secondary" component="div">No items in this order.</Typography>
         )}
       </Paper>
     </Box>

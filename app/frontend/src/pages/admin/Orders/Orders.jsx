@@ -1,242 +1,129 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import {
-  Box,
-  Typography,
-  Chip,
-  Stack,
-  CircularProgress,
-  Paper,
-  Snackbar,
-  Alert,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { fetchOrders, deleteOrderAsync } from "../../../features/orders/ordersThunks";
-import DataTable from "../../../components/admin/DataTable/DataTable";
-import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
+// src/pages/admin/Orders/Orders.jsx
+import React, { useEffect, useMemo, useCallback, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Box, CircularProgress, Snackbar, Alert, Button } from "@mui/material";
+import { fetchOrders, deleteOrderAsync, updateOrder } from "../../../features/orders/ordersThunks";
+import OrdersDashboardStats from "../../../components/admin/Orders/OrdersDashboardStats";
+import OrdersTable from "../../../components/admin/Orders/OrdersTable";
+import OrderDetailsModal from "../../../components/admin/Orders/OrderDetailsModal";
 import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
-
-// ✅ Fixed selector - state.orders is already the slice
-const selectOrders = (state) => state.orders || { orders: [], loading: false, error: null };
+import { BRAND_COLORS } from "../../../theme/colors";
 
 export default function Orders() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const { byId, allIds, loading, error } = useSelector((state) => state.orders);
 
-  const { orders, loading, error } = useSelector(selectOrders);
+  const orders = useMemo(() => allIds.map((id) => byId[id]), [allIds, byId]);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [alert, setAlert] = useState({ open: false, message: "", severity: "success" });
+  const [darkMode, setDarkMode] = useState(false);
 
-  // ✅ Simplified useEffect - always fetch on mount
+  const colors = darkMode ? BRAND_COLORS.dark : BRAND_COLORS.light;
+
   useEffect(() => {
     dispatch(fetchOrders());
   }, [dispatch]);
 
-  // Columns memoized
-  const columns = useMemo(
-    () => [
-      {
-        field: "customer_name",
-        headerName: "Customer",
-        flex: 1,
-        minWidth: 180,
-        renderCell: (params) => <Typography variant="body2">{params.value || "—"}</Typography>,
-      },
-      {
-        field: "email",
-        headerName: "Email",
-        flex: 1,
-        minWidth: 200,
-        renderCell: (params) => (
-          <Typography variant="body2" sx={{ wordBreak: "break-all" }}>{params.value || "—"}</Typography>
-        ),
-      },
-      {
-        field: "items_count",
-        headerName: "Items",
-        width: 90,
-        align: "center",
-        headerAlign: "center",
-        renderCell: (params) => <Typography variant="body2">{params.value ?? 0}</Typography>,
-      },
-      {
-        field: "total",
-        headerName: "Total (MAD)",
-        minWidth: 120,
-        align: "right",
-        headerAlign: "right",
-        renderCell: (params) => (
-          <Typography variant="body2">{params.value != null ? `${params.value} MAD` : "—"}</Typography>
-        ),
-      },
-      {
-        field: "status",
-        headerName: "Status",
-        minWidth: 140,
-        renderCell: (params) => {
-          const s = (params.value || "").toLowerCase();
-          const color =
-            s === "pending"
-              ? "warning"
-              : s === "processing"
-              ? "info"
-              : s === "completed"
-              ? "success"
-              : s === "cancelled"
-              ? "default"
-              : "primary";
-          return (
-            <Chip
-              label={params.value || "—"}
-              size="small"
-              color={color}
-              sx={{ textTransform: "capitalize", fontWeight: 600 }}
-            />
-          );
-        },
-      },
-      {
-        field: "created_at",
-        headerName: "Created At",
-        minWidth: 160,
-        renderCell: (params) => {
-          const date = params.value ? new Date(params.value) : null;
-          return (
-            <Typography variant="body2">
-              {date ? date.toLocaleString("fr-FR") : "—"}
-            </Typography>
-          );
-        },
-      }
-      
-    ],
-    []
-  );
+  // Statistics
+  const statistics = useMemo(() => {
+    const total = orders.length;
+    const pending = orders.filter((o) => o.status === "pending").length;
+    const completed = orders.filter((o) => o.status === "completed").length;
+    const cancelled = orders.filter((o) => o.status === "cancelled").length;
+    const revenue = orders
+      .filter((o) => o.status === "completed")
+      .reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+    return { total, pending, completed, cancelled, revenue };
+  }, [orders]);
 
-  // Filtered rows memoized
-  const filteredRows = useMemo(() => {
-    if (!searchTerm) return orders;
+  // Filtered Orders
+  const filteredOrders = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return orders.filter(
       (o) =>
-        String(o.id).toLowerCase().includes(term) ||
-        (o.customer_name || "").toLowerCase().includes(term) ||
-        (o.email || "").toLowerCase().includes(term) ||
-        (o.status || "").toLowerCase().includes(term)
+        o.customer_name?.toLowerCase().includes(term) ||
+        o.email?.toLowerCase().includes(term) ||
+        o.status?.toLowerCase().includes(term) ||
+        o.total?.toString().includes(term)
     );
   }, [orders, searchTerm]);
 
-  // Handlers
-  const handleView = useCallback((row) => navigate(`/admin/orders/${row.id}`), [navigate]);
-  const handleEdit = useCallback((row) => navigate(`/admin/orders/edit/${row.id}`), [navigate]);
-  const handleDelete = useCallback((row) => setDeleteTarget(row), []);
+  const handleStatusChange = useCallback(
+    async (orderId, status) => {
+      try {
+        await dispatch(updateOrder({ id: orderId, data: { status } })).unwrap();
+        setAlert({ open: true, message: `Order marked as ${status}`, severity: "success" });
+      } catch {
+        setAlert({ open: true, message: "Status update failed", severity: "error" });
+      }
+    },
+    [dispatch]
+  );
 
-  const confirmDelete = useCallback(async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
       await dispatch(deleteOrderAsync(deleteTarget.id)).unwrap();
       setAlert({ open: true, message: "Order deleted successfully", severity: "success" });
-    } catch (err) {
-      setAlert({ open: true, message: err || "Failed to delete order", severity: "error" });
+    } catch {
+      setAlert({ open: true, message: "Failed to delete order", severity: "error" });
     } finally {
       setDeleteTarget(null);
     }
-  }, [dispatch, deleteTarget]);
+  }, [deleteTarget, dispatch]);
 
-  const handleExport = useCallback(() => {
-    if (!orders.length) return;
-    const headers = ["Order ID", "Customer", "Email", "Items", "Total", "Status", "Created At"];
-    const rows = orders.map((o) =>
-      [
-        o.id,
-        o.customer_name || "",
-        o.email || "",
-        o.items_count ?? 0,
-        o.total ?? 0,
-        o.status || "",
-        o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "",
-      ]
-    );
-    const csvContent =
-      [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "orders_export.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [orders]);
+  if (loading && orders.length === 0) return <CircularProgress size={60} />;
 
-  const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
-
-  // ✅ Added debug logging
-  console.log("Redux State:", { orders, loading, error });
-
-  // Loading / Error UI
-  if (loading)
-    return (
-      <Box className="flex justify-center items-center h-[70vh]" sx={{ gap: 2 }}>
-        <CircularProgress size={28} />
-        <Typography variant="body1" color="text.secondary">Loading orders...</Typography>
-      </Box>
-    );
-
-  if (error)
-    return (
-      <Typography variant="h6" align="center" color="error" mt={4}>{error}</Typography>
-    );
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-        <Typography variant="h4" fontWeight={700} color="text.primary">
-          Orders Management
-        </Typography>
-      </Stack>
+    <Box sx={{ p: 3, bgcolor: colors.background, minHeight: "100vh" }}>
+      <Button onClick={() => setDarkMode(!darkMode)}>{darkMode ? "Light" : "Dark"}</Button>
 
-      <DataTableToolbar
-        title="Orders"
-        onAddClick={() => navigate("/admin/orders/create")}
-        onSearchChange={setSearchTerm}
-        onExportClick={handleExport}
-        searchPlaceholder="Search by id, customer, email or status..."
-        addLabel="creat"
+      {/* Statistics */}
+      <OrdersDashboardStats statistics={statistics} colors={colors} />
+
+      {/* Orders Table */}
+      <OrdersTable
+        orders={filteredOrders}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onViewDetails={(order) => {
+          setSelectedOrder(order);
+          setDetailsModalOpen(true);
+        }}
+        onDelete={(order) => setDeleteTarget(order)}
+        onStatusChange={handleStatusChange}
+        colors={colors}
       />
 
-      <Paper sx={{ mt: 2, p: 1, borderRadius: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <DataTable
-          columns={columns}
-          rows={filteredRows}
-          loading={loading}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      </Paper>
+      {/* Modals */}
+      <OrderDetailsModal
+        open={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        order={selectedOrder}
+        onStatusChange={(status) => handleStatusChange(selectedOrder.id, status)}
+        darkMode={darkMode}
+      />
 
       <DeleteConfirmationModal
         open={!!deleteTarget}
         handleClose={() => setDeleteTarget(null)}
-        handleDeleteConfirm={confirmDelete}
+        handleDeleteConfirm={handleDelete}
       />
 
+      {/* ✅ Fixed Snackbar */}
       <Snackbar
         open={alert.open}
-        autoHideDuration={3000}
-        onClose={handleCloseAlert}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        autoHideDuration={4000}
+        onClose={() => setAlert({ ...alert, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }} // ✅ Correct syntax
       >
-        <Alert
-          onClose={handleCloseAlert}
-          severity={alert.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {alert.message}
-        </Alert>
+        <Alert severity={alert.severity || "info"}>{alert.message}</Alert>
       </Snackbar>
     </Box>
   );
