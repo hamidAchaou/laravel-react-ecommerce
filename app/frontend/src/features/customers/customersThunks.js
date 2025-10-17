@@ -8,7 +8,7 @@ export const fetchCustomers = createAsyncThunk(
   'customers/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await api.get('/api/clients'); // ✅ correct endpoint
+      const { data } = await api.get('/api/clients');
 
       if (!data?.data) throw new Error('Invalid API response format');
 

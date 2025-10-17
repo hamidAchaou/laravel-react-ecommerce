@@ -42,13 +42,13 @@ const Categories = () => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 🔹 Map API data to DataGrid rows
+  // 🔹 Map API data to DataGrid rows - FIXED: Use image_url from API
   useEffect(() => {
     if (!Array.isArray(categories)) return;
     const mappedRows = categories.map((cat, index) => ({
       id: cat.id || `row-${index}`,
       name: cat.name || "—",
-      image_url: cat.image_url || null,
+      image_url: cat.image_url || null, // Use the full URL from API
       image: cat.image || null,
       parent_name: cat.parent_id
         ? categories.find((c) => c.id === cat.parent_id)?.name || "—"
