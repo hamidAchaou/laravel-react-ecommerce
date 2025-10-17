@@ -19,8 +19,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { fetchCategories } from "../../../features/categories/categoriesThunks";
+import { fetchCategories, deleteCategory } from "../../../features/categories/categoriesThunks";
 import { useSnackbar } from "notistack";
+import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
 
 const Categories = () => {
   const dispatch = useDispatch();
@@ -33,20 +34,22 @@ const Categories = () => {
   );
 
   const [rows, setRows] = useState([]);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   // 🔹 Fetch categories on mount
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 🔹 Map API data to DataGrid rows - FIXED: use image_url instead of image
+  // 🔹 Map API data to DataGrid rows
   useEffect(() => {
     if (!Array.isArray(categories)) return;
     const mappedRows = categories.map((cat, index) => ({
       id: cat.id || `row-${index}`,
       name: cat.name || "—",
-      image_url: cat.image_url || null, // Use image_url instead of image
-      image: cat.image || null, // Keep original for reference
+      image_url: cat.image_url || null,
+      image: cat.image || null,
       parent_name: cat.parent_id
         ? categories.find((c) => c.id === cat.parent_id)?.name || "—"
         : "—",
@@ -59,23 +62,55 @@ const Categories = () => {
 
   // 🔹 Handlers
   const handleEdit = useCallback((id) => navigate(`/admin/categories/edit/${id}`), [navigate]);
-  const handleDelete = useCallback(
-    (id) => enqueueSnackbar(`Delete action clicked for ID: ${id}`, { variant: "info" }),
-    [enqueueSnackbar]
-  );
+  
   const handleView = useCallback((id) => navigate(`/admin/categories/${id}`), [navigate]);
 
-  // 🔹 Columns configuration with useMemo for performance - FIXED: use image_url
+  const handleDeleteClick = useCallback((id) => {
+    const category = categories.find(cat => cat.id === id);
+    setCategoryToDelete({
+      id,
+      name: category?.name || 'this category'
+    });
+    setDeleteModalOpen(true);
+  }, [categories]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      await dispatch(deleteCategory(categoryToDelete.id)).unwrap();
+      enqueueSnackbar(`Category "${categoryToDelete.name}" deleted successfully`, { 
+        variant: "success" 
+      });
+      // Refresh the categories list
+      dispatch(fetchCategories());
+    } catch (error) {
+      enqueueSnackbar(
+        error || `Failed to delete category "${categoryToDelete.name}"`, 
+        { variant: "error" }
+      );
+    } finally {
+      setDeleteModalOpen(false);
+      setCategoryToDelete(null);
+    }
+  }, [categoryToDelete, dispatch, enqueueSnackbar]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteModalOpen(false);
+    setCategoryToDelete(null);
+  }, []);
+
+  // 🔹 Columns configuration with useMemo for performance
   const columns = useMemo(
     () => [
       {
-        field: "image_url", // Changed from "image" to "image_url"
+        field: "image_url",
         headerName: "Image",
         flex: 1,
         sortable: false,
         renderCell: (params) => (
           <Avatar
-            src={params.value || "/placeholder.png"} // Now using the full URL
+            src={params.value || "/placeholder.png"}
             alt={params.row.name}
             variant="rounded"
             sx={{
@@ -172,6 +207,7 @@ const Categories = () => {
                   color: 'white'
                 } 
               }}
+              title="View Category"
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
@@ -185,19 +221,21 @@ const Categories = () => {
                   color: 'white'
                 } 
               }}
+              title="Edit Category"
             >
               <EditIcon fontSize="small" />
             </IconButton>
             <IconButton 
               color="error" 
               size="small" 
-              onClick={() => handleDelete(params.row.id)}
+              onClick={() => handleDeleteClick(params.row.id)}
               sx={{ 
                 '&:hover': { 
                   backgroundColor: theme.palette.error.light,
                   color: 'white'
                 } 
               }}
+              title="Delete Category"
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -205,7 +243,7 @@ const Categories = () => {
         ),
       },
     ],
-    [theme.palette.mode, handleEdit, handleDelete, handleView, theme.palette]
+    [theme.palette.mode, handleEdit, handleDeleteClick, handleView, theme.palette]
   );
 
   return (
@@ -309,6 +347,15 @@ const Categories = () => {
           />
         )}
       </Paper>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        handleClose={handleDeleteCancel}
+        handleDeleteConfirm={handleDeleteConfirm}
+        title="Delete Category"
+        message={`Are you sure you want to delete "${categoryToDelete?.name}"? This action cannot be undone.`}
+      />
     </Box>
   );
 };
