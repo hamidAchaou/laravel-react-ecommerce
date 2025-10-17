@@ -24,10 +24,17 @@ import {
   AppSelect,
   AppButton,
 } from "../../../components/admin/ui";
-import { fetchCategories } from "../../../features/categories/categoriesTunks";
-import { createProduct, updateProduct } from "../../../features/products/productsThunks";
+import { fetchCategories } from "../../../features/categories/categoriesThunks";
+import {
+  createProduct,
+  updateProduct,
+} from "../../../features/products/productsThunks";
 
-export default function ProductForm({ mode = "create", defaultValues = {}, onSubmit }) {
+export default function ProductForm({
+  mode = "create",
+  defaultValues = {},
+  onSubmit,
+}) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -65,14 +72,17 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
   // Pre-fill existing product
   useEffect(() => {
     if (mode === "update" && defaultValues) {
-      if (defaultValues.category?.id) setValue("category_id", String(defaultValues.category.id));
+      if (defaultValues.category?.id)
+        setValue("category_id", String(defaultValues.category.id));
 
       if (defaultValues.images?.length) {
         const formattedImages = defaultValues.images.map((img) => ({
           id: img.id,
           image_path: img.image_path,
           is_primary: img.is_primary,
-          preview: `${import.meta.env.VITE_API_BASE_URL}/storage/${img.image_path}`,
+          preview: `${import.meta.env.VITE_API_BASE_URL}/storage/${
+            img.image_path
+          }`,
         }));
 
         setValue("images", formattedImages);
@@ -134,7 +144,9 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
   const submitForm = async (data) => {
     try {
       const productImages = data.images || [];
-      const existingIds = productImages.filter((img) => img.id).map((img) => img.id);
+      const existingIds = productImages
+        .filter((img) => img.id)
+        .map((img) => img.id);
       const newFiles = productImages.filter((img) => img.file);
       const primary = productImages.find((img) => img.is_primary);
 
@@ -150,10 +162,16 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
 
       if (mode === "create") {
         const result = await dispatch(createProduct(payload)).unwrap();
-        enqueueSnackbar("Product created successfully!", { variant: "success" });
+        enqueueSnackbar("Product created successfully!", {
+          variant: "success",
+        });
       } else {
-        const result = await dispatch(updateProduct({ id: defaultValues.id, data: payload })).unwrap();
-        enqueueSnackbar("Product updated successfully!", { variant: "success" });
+        const result = await dispatch(
+          updateProduct({ id: defaultValues.id, data: payload })
+        ).unwrap();
+        enqueueSnackbar("Product updated successfully!", {
+          variant: "success",
+        });
       }
 
       navigate("/admin/products");
@@ -171,10 +189,17 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
     <Box className="p-6 flex justify-center min-h-screen">
       <Card
         className="w-full max-w-3xl shadow-md rounded-2xl border"
-        sx={{ borderColor: theme.palette.divider, backgroundColor: theme.palette.background.paper }}
+        sx={{
+          borderColor: theme.palette.divider,
+          backgroundColor: theme.palette.background.paper,
+        }}
       >
         <CardHeader
-          title={<Typography variant="h5" fontWeight={600}>{mode === "create" ? "Add New Product" : "Edit Product"}</Typography>}
+          title={
+            <Typography variant="h5" fontWeight={600}>
+              {mode === "create" ? "Add New Product" : "Edit Product"}
+            </Typography>
+          }
           subheader="Fill out the product details below"
         />
         <CardContent>
@@ -185,21 +210,28 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                 name="title"
                 control={control}
                 rules={{ required: "Title is required" }}
-                render={({ field, fieldState }) => <AppInput {...field} label="Title" error={fieldState.error} />}
+                render={({ field, fieldState }) => (
+                  <AppInput {...field} label="Title" error={fieldState.error} />
+                )}
               />
 
               {/* Description */}
               <Controller
                 name="description"
                 control={control}
-                render={({ field }) => <AppTextarea {...field} label="Description" rows={4} />}
+                render={({ field }) => (
+                  <AppTextarea {...field} label="Description" rows={4} />
+                )}
               />
 
               {/* Price */}
               <Controller
                 name="price"
                 control={control}
-                rules={{ required: "Price is required", min: { value: 0, message: "Price must be >= 0" } }}
+                rules={{
+                  required: "Price is required",
+                  min: { value: 0, message: "Price must be >= 0" },
+                }}
                 render={({ field, fieldState }) => (
                   <AppInput
                     {...field}
@@ -217,7 +249,10 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
               <Controller
                 name="stock"
                 control={control}
-                rules={{ required: "Stock is required", min: { value: 0, message: "Stock must be >= 0" } }}
+                rules={{
+                  required: "Stock is required",
+                  min: { value: 0, message: "Stock must be >= 0" },
+                }}
                 render={({ field, fieldState }) => (
                   <AppInput
                     {...field}
@@ -237,16 +272,35 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                 control={control}
                 rules={{ required: "Category is required" }}
                 render={({ field, fieldState }) => (
-                  <AppSelect {...field} label="Category" options={categoryOptions} error={fieldState.error} loading={categoriesLoading} />
+                  <AppSelect
+                    {...field}
+                    label="Category"
+                    options={categoryOptions}
+                    error={fieldState.error}
+                    loading={categoriesLoading}
+                  />
                 )}
               />
 
               {/* Images */}
               <Box>
-                <Typography variant="subtitle1" fontWeight={500} mb={1}>Product Images</Typography>
-                <AppButton variant="outlined" color="primary" startIcon={<Add />} component="label">
+                <Typography variant="subtitle1" fontWeight={500} mb={1}>
+                  Product Images
+                </Typography>
+                <AppButton
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<Add />}
+                  component="label"
+                >
                   Upload Images
-                  <input type="file" hidden multiple accept="image/*" onChange={handleImageUpload} />
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
                 </AppButton>
 
                 {mainImage && (
@@ -254,7 +308,15 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                     component="img"
                     src={mainImage}
                     alt="Main Product"
-                    sx={{ width: "50%", height: 300, objectFit: "cover", borderRadius: 3, mt: 3, mx: "auto", boxShadow: 2 }}
+                    sx={{
+                      width: "50%",
+                      height: 300,
+                      objectFit: "cover",
+                      borderRadius: 3,
+                      mt: 3,
+                      mx: "auto",
+                      boxShadow: 2,
+                    }}
                   />
                 )}
 
@@ -272,7 +334,9 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                               borderRadius: 2,
                               boxShadow: 1,
                               cursor: "pointer",
-                              border: img.is_primary ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
+                              border: img.is_primary
+                                ? `2px solid ${theme.palette.primary.main}`
+                                : "2px solid transparent",
                               transition: "all 0.2s",
                             }}
                             onClick={() => handleSetMainImage(img)}
@@ -284,8 +348,16 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                               position: "absolute",
                               top: 4,
                               right: 4,
-                              bgcolor: theme.palette.mode === "dark" ? "#374151" : "white",
-                              "&:hover": { backgroundColor: theme.palette.mode === "dark" ? "#4B5563" : "#f3f4f6" },
+                              bgcolor:
+                                theme.palette.mode === "dark"
+                                  ? "#374151"
+                                  : "white",
+                              "&:hover": {
+                                backgroundColor:
+                                  theme.palette.mode === "dark"
+                                    ? "#4B5563"
+                                    : "#f3f4f6",
+                              },
                             }}
                             onClick={() => handleRemoveImage(idx)}
                           >
@@ -293,7 +365,15 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
                           </IconButton>
 
                           {img.is_primary && (
-                            <Typography variant="caption" sx={{ mt: 1, display: "block", color: theme.palette.primary.main, fontWeight: 600 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                mt: 1,
+                                display: "block",
+                                color: theme.palette.primary.main,
+                                fontWeight: 600,
+                              }}
+                            >
                               Primary
                             </Typography>
                           )}
@@ -306,7 +386,12 @@ export default function ProductForm({ mode = "create", defaultValues = {}, onSub
 
               {/* Submit Button */}
               <Box textAlign="right" mt={3}>
-                <AppButton type="submit" color="primary" variant="contained" loading={isSubmitting}>
+                <AppButton
+                  type="submit"
+                  color="primary"
+                  variant="contained"
+                  loading={isSubmitting}
+                >
                   {mode === "create" ? "Create Product" : "Update Product"}
                 </AppButton>
               </Box>

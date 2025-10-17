@@ -8,6 +8,8 @@ use App\Http\Resources\CategoryResource;
 use App\Repositories\CategoryRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
@@ -16,7 +18,7 @@ class CategoryController extends Controller
     ) {}
 
     /**
-     * List categories with search, filters & pagination.
+     * List categories
      */
     public function index(Request $request): JsonResponse
     {
@@ -44,56 +46,143 @@ class CategoryController extends Controller
     }
 
     /**
-     * Show a single category.
+     * Show single category
      */
     public function show(int $id): JsonResponse
     {
-        $category = $this->categoryRepository->findOrFail($id, ['parent']);
-
-        if (!$category) {
+        try {
+            $category = $this->categoryRepository->findOrFail($id, ['parent']);
+            return response()->json(['data' => new CategoryResource($category)]);
+        } catch (\Exception $e) {
             return response()->json(['message' => 'Category not found'], 404);
         }
-
-        return response()->json(new CategoryResource($category));
     }
 
     /**
-     * Store a new category.
+     * Store new category
      */
     public function store(CategoryStoreRequest $request): JsonResponse
     {
-        $category = $this->categoryRepository->create($request->validated());
+        try {
+            DB::beginTransaction();
 
-        return response()->json(new CategoryResource($category), 201);
+            $data = $request->validated();
+
+            Log::info('Store Category Request Data:', [
+                'validated' => $data,
+                'has_file' => $request->hasFile('image'),
+                'file_valid' => $request->hasFile('image') ? $request->file('image')->isValid() : false,
+            ]);
+
+            // Handle image file
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+                $data['image'] = $request->file('image');
+            } else {
+                unset($data['image']);
+            }
+
+            // Create category
+            $category = $this->categoryRepository->create($data);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Category created successfully',
+                'data' => new CategoryResource($category)
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            Log::error('Validation error:', ['errors' => $e->errors()]);
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Category creation failed:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Failed to create category',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
     }
 
     /**
-     * Update an existing category.
+     * Update category
      */
     public function update(CategoryUpdateRequest $request, int $id): JsonResponse
     {
-        $category = $this->categoryRepository->find($id);
+        try {
+            DB::beginTransaction();
 
-        if (!$category) {
-            return response()->json(['message' => 'Category not found'], 404);
+            $category = $this->categoryRepository->find($id);
+
+            if (!$category) {
+                return response()->json(['message' => 'Category not found'], 404);
+            }
+
+            $data = $request->validated();
+
+            Log::info('Update Category Request Data:', [
+                'id' => $id,
+                'validated' => $data,
+                'has_file' => $request->hasFile('image'),
+            ]);
+
+            // Handle image file
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+                $data['image'] = $request->file('image');
+            }
+
+            $category = $this->categoryRepository->update($data, $id);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Category updated successfully',
+                'data' => new CategoryResource($category)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Category update failed:', [
+                'id' => $id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Failed to update category',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
-
-        $category = $this->categoryRepository->update($request->validated(), $id);
-
-        return response()->json(new CategoryResource($category));
     }
 
     /**
-     * Delete a category.
+     * Delete category
      */
     public function destroy(int $id): JsonResponse
     {
-        $deleted = $this->categoryRepository->delete($id);
+        try {
+            $deleted = $this->categoryRepository->delete($id);
 
-        if (!$deleted) {
-            return response()->json(['message' => 'Category not found'], 404);
+            if (!$deleted) {
+                return response()->json(['message' => 'Category not found'], 404);
+            }
+
+            return response()->json(['message' => 'Category deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Category deletion failed:', [
+                'id' => $id,
+                'message' => $e->getMessage()
+            ]);
+            return response()->json([
+                'message' => 'Failed to delete category',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
-
-        return response()->json(['message' => 'Category deleted successfully']);
     }
 }

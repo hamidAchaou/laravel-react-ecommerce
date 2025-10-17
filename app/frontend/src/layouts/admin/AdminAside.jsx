@@ -24,6 +24,7 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
     { to: "/admin", label: "Dashboard" },
     { to: "/admin/products", label: "Products" },
     { to: "/admin/orders", label: "Orders" },
+    { to: "/admin/categories", label: "categories" },
     { to: "/admin/users", label: "Users" },
   ];
 

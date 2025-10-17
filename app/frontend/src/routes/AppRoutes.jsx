@@ -41,10 +41,10 @@ const AdminUsers = lazy(() => import("../pages/admin/Users/Users"));
 // const UserEdit = lazy(() => import("../pages/admin/Users/UserEdit"));
 
 // Categories
-// const AdminCategories = lazy(() => import("../pages/admin/Categories/Categories"));
-// const CategoryCreate = lazy(() => import("../pages/admin/Categories/CategoryCreate"));
-// const CategoryEdit = lazy(() => import("../pages/admin/Categories/CategoryEdit"));
-// const CategoryDetails = lazy(() => import("../pages/admin/Categories/CategoryDetails"));
+const AdminCategories = lazy(() => import("../pages/admin/categories/Categories"));
+const CategoryCreate = lazy(() => import("../pages/admin/Categories/CategoryCreate"));
+const CategoryEdit = lazy(() => import("../pages/admin/Categories/CategoryEdit"));
+const CategoryDetails = lazy(() => import("../pages/admin/Categories/CategoryDetails"));
 
 export default function AppRoutes() {
   return (
@@ -77,10 +77,10 @@ export default function AppRoutes() {
             <Route path="products/:id" element={<ProductDetails />} />
 
             {/* Categories */}
-            {/* <Route path="categories" element={<AdminCategories />} /> */}
-            {/* <Route path="categories/create" element={<CategoryCreate />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="categories/create" element={<CategoryCreate />} />
             <Route path="categories/edit/:id" element={<CategoryEdit />} />
-            <Route path="categories/:id" element={<CategoryDetails />} /> */}
+            <Route path="categories/:id" element={<CategoryDetails />} />
 
             {/* Orders */}
             <Route path="orders" element={<AdminOrders />} />
