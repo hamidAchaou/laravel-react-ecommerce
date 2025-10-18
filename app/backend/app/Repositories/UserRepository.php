@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Role;
 
 class UserRepository extends BaseRepository
 {
@@ -32,32 +33,7 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Custom update logic if needed (ex: hashing password).
-     */
-    public function update(array $data, mixed $id): Model
-    {
-        $user = $this->findOrFail($id);
-
-        $fields = ['name', 'email', 'role', 'is_active'];
-
-        foreach ($fields as $field) {
-            if (isset($data[$field])) {
-                $user->{$field} = $data[$field];
-            }
-        }
-
-        // Handle password if present
-        if (!empty($data['password'])) {
-            $user->password = bcrypt($data['password']);
-        }
-
-        $user->save();
-
-        return $user->refresh();
-    }
-
-    /**
-     * Secure user creation with hashed password.
+     * Create a new user with a role (default: customer)
      */
     public function create(array $data): Model
     {
@@ -65,6 +41,50 @@ class UserRepository extends BaseRepository
             $data['password'] = bcrypt($data['password']);
         }
 
-        return parent::create($data);
+        // Create the user
+        $user = parent::create($data);
+
+        // Assign chosen role or default to "customer"
+        $roleName = $data['role'] ?? 'customer';
+        $role = Role::where('name', $roleName)->first();
+
+        if ($role) {
+            $user->assignRole($role);
+        }
+
+        return $user->refresh();
     }
+
+    /**
+     * Update user info and optionally their role.
+     */
+    public function update(array $data, mixed $id): Model
+    {
+        $user = $this->findOrFail($id);
+    
+        $fields = ['name', 'email', 'is_active'];
+        foreach ($fields as $field) {
+            if (isset($data[$field])) {
+                $user->{$field} = $data[$field];
+            }
+        }
+    
+        if (!empty($data['password'])) {
+            $user->password = bcrypt($data['password']);
+        }
+    
+        $user->save();
+    
+        // ✅ Update role if provided
+        if (!empty($data['role'])) {
+            $role = Role::where('name', $data['role'])->first();
+            if ($role) {
+                $user->syncRoles([$role]);
+            }
+        }
+    
+        // ✅ Always reload relations before returning
+        return $user->load('roles')->refresh();
+    }
+    
 }

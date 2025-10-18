@@ -8,7 +8,7 @@ class UserStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Use policies if needed
+        return true; // Or use policies if needed
     }
 
     public function rules(): array
@@ -16,9 +16,9 @@ class UserStoreRequest extends FormRequest
         return [
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'email', 'unique:users,email'],
-            'password'  => ['required', 'string', 'min:8'],
-            'role'      => ['nullable', 'string', 'max:50'],
-            'is_active' => ['boolean'],
+            'password'  => ['required', 'string', 'min:6'],
+            'role'      => ['nullable', 'string', 'in:admin,seller,customer'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 }

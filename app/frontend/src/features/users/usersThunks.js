@@ -10,7 +10,7 @@ export const fetchUsers = createAsyncThunk(
 
       // Laravel ResourceCollection returns { data, meta, links }
       const usersList = data.data || data;
-      
+
       if (!Array.isArray(usersList)) {
         throw new Error("Invalid API response format");
       }
@@ -33,7 +33,9 @@ export const fetchUsers = createAsyncThunk(
     } catch (error) {
       console.error("Fetch users error:", error);
       return rejectWithValue(
-        error.response?.data?.message || error.message || "Failed to fetch users"
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch users"
       );
     }
   }
@@ -63,23 +65,23 @@ export const createUser = createAsyncThunk(
     } catch (error) {
       console.error("Create user error:", error);
       return rejectWithValue(
-        error.response?.data?.message || error.message || "Failed to create user"
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to create user"
       );
     }
   }
 );
 
 export const updateUser = createAsyncThunk(
-  "users/update",
-  async ({ userId, userData }, { rejectWithValue }) => {
+  "users/updateUser",
+  async ({ id, data }, { rejectWithValue }) => {
     try {
-      const { data } = await axios.put(`/api/users/${userId}`, userData);
-      return data.data || data;
+      const response = await axios.put(`/api/users/${id}`, data);
+      return response.data;
     } catch (error) {
       console.error("Update user error:", error);
-      return rejectWithValue(
-        error.response?.data?.message || error.message || "Failed to update user"
-      );
+      return rejectWithValue(error.response?.data || "Failed to update user");
     }
   }
 );
@@ -93,7 +95,9 @@ export const deleteUser = createAsyncThunk(
     } catch (error) {
       console.error("Delete user error:", error);
       return rejectWithValue(
-        error.response?.data?.message || error.message || "Failed to delete user"
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to delete user"
       );
     }
   }

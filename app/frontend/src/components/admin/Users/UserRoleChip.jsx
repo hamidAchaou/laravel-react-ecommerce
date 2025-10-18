@@ -1,36 +1,46 @@
-// src/components/admin/Users/UserRoleChip.jsx
 import React from 'react';
 import { Chip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { AdminPanelSettings, Person, SupportAgent } from '@mui/icons-material';
+import { 
+  AdminPanelSettings, 
+  Storefront, 
+  Person, 
+  SupportAgent 
+} from '@mui/icons-material';
 
 const UserRoleChip = ({ role }) => {
   const theme = useTheme();
 
+  // Define visual style for each role
   const roleConfig = {
     admin: {
       label: 'Admin',
       color: 'error',
       icon: <AdminPanelSettings fontSize="small" />,
     },
-    manager: {
-      label: 'Manager',
+    seller: {
+      label: 'Seller',
       color: 'secondary',
-      icon: <SupportAgent fontSize="small" />,
-    },
-    user: {
-      label: 'User',
-      color: 'primary',
-      icon: <Person fontSize="small" />,
+      icon: <Storefront fontSize="small" />,
     },
     customer: {
       label: 'Customer',
-      color: 'default',
+      color: 'primary',
       icon: <Person fontSize="small" />,
+    },
+    manager: {
+      label: 'Manager',
+      color: 'info',
+      icon: <SupportAgent fontSize="small" />,
     },
   };
 
-  const config = roleConfig[role] || roleConfig.user;
+  // Use a default config if role not found
+  const config = roleConfig[role] || {
+    label: role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User',
+    color: 'default',
+    icon: <Person fontSize="small" />,
+  };
 
   return (
     <Chip
@@ -39,9 +49,10 @@ const UserRoleChip = ({ role }) => {
       color={config.color}
       variant="outlined"
       size="small"
-      sx={{ 
+      sx={{
         fontWeight: 600,
         borderRadius: 1,
+        textTransform: 'capitalize',
       }}
     />
   );

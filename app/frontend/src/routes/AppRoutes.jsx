@@ -36,6 +36,9 @@ const OrderEdit = lazy(() => import("../pages/admin/Orders/OrderEdit.jsx"));
 
 // Users
 const AdminUsers = lazy(() => import("../pages/admin/Users/Users"));
+import UsersCreate from "../pages/admin/Users/UsersCreate.jsx";
+import UsersEdit from "../pages/admin/Users/UsersEdit.jsx";
+import UsersDetails from "../pages/admin/Users/UsersDetails.jsx";
 
 // Categories
 const AdminCategories = lazy(() => import("../pages/admin/categories/Categories"));
@@ -92,6 +95,9 @@ export default function AppRoutes() {
 
             {/* Users */}
             <Route path="users" element={<AdminUsers />} />
+            <Route path="users/create" element={<UsersCreate />} />
+            <Route path="users/edit/:id" element={<UsersEdit />} />
+            <Route path="users/:id" element={<UsersDetails />} />
 
             {/* Roles & Permissions */}
             <Route path="roles" element={<ManageRoles />} />
