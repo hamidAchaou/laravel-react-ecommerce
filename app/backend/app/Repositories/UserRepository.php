@@ -12,6 +12,25 @@ class UserRepository extends BaseRepository
         return User::class;
     }
 
+    public function getAllPaginate(
+        array $filters = [],
+        array $with = [],
+        array $searchableFields = [],
+        int $perPage = 15,
+        string $orderBy = 'created_at',
+        string $direction = 'desc'
+    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+        $query = $this->buildFilteredQuery($filters, $with, $searchableFields);
+
+        if (!empty($filters['role'])) {
+            $query->whereHas('roles', function ($q) use ($filters) {
+                $q->where('name', $filters['role']);
+            });
+        }
+
+        return $query->orderBy($orderBy, $direction)->paginate($perPage);
+    }
+
     /**
      * Custom update logic if needed (ex: hashing password).
      */

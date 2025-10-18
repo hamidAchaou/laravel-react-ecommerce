@@ -32,12 +32,12 @@ class UserController extends Controller
 
         $users = $this->userRepository->getAllPaginate(
             filters: $filters,
-            with: [],
+            with: ['roles'],
             searchableFields: ['name', 'email'],
             perPage: $perPage,
             orderBy: $sortBy,
             direction: $sortDir
-        );
+        );        
 
         return response()->json(
             UserResource::collection($users)->response()->getData(true)

@@ -12,6 +12,25 @@ class ClientRepository extends BaseRepository
         return Client::class;
     }
 
+    public function getAllPaginate(
+        array $filters = [],
+        array $with = [],
+        array $searchableFields = [],
+        int $perPage = 15,
+        string $orderBy = 'created_at',
+        string $direction = 'desc'
+    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+        $query = $this->buildFilteredQuery($filters, $with, $searchableFields);
+
+        // Only clients with user.role = customer
+        $query->whereHas('user.roles', function ($q) {
+            $q->where('name', 'customer');
+        });
+
+        return $query->orderBy($orderBy, $direction)->paginate($perPage);
+    }
+
+
     /**
      * Custom create with optional user linkage handling.
      */
