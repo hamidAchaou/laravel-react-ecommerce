@@ -36,15 +36,18 @@ const OrderEdit = lazy(() => import("../pages/admin/Orders/OrderEdit.jsx"));
 
 // Users
 const AdminUsers = lazy(() => import("../pages/admin/Users/Users"));
-// const UserDetails = lazy(() => import("../pages/admin/Users/UserDetails"));
-// const UserCreate = lazy(() => import("../pages/admin/Users/UserCreate"));
-// const UserEdit = lazy(() => import("../pages/admin/Users/UserEdit"));
 
 // Categories
 const AdminCategories = lazy(() => import("../pages/admin/categories/Categories"));
 const CategoryCreate = lazy(() => import("../pages/admin/Categories/CategoryCreate"));
 const CategoryEdit = lazy(() => import("../pages/admin/Categories/CategoryEdit"));
 const CategoryDetails = lazy(() => import("../pages/admin/Categories/CategoryDetails"));
+
+// Roles & Permissions
+const ManageRoles = lazy(() => import("../pages/admin/Roles/ManageRoles"));
+const RoleCreate = lazy(() => import("../pages/admin/Roles/RoleCreate"));
+const RoleEdit = lazy(() => import("../pages/admin/Roles/RoleEdit"));
+const RoleDetails = lazy(() => import("../pages/admin/Roles/RoleDetails"));
 
 export default function AppRoutes() {
   return (
@@ -89,9 +92,12 @@ export default function AppRoutes() {
 
             {/* Users */}
             <Route path="users" element={<AdminUsers />} />
-            {/* <Route path="users/create" element={<UserCreate />} />
-            <Route path="users/edit/:id" element={<UserEdit />} />
-            <Route path="users/:id" element={<UserDetails />} /> */}
+
+            {/* Roles & Permissions */}
+            <Route path="roles" element={<ManageRoles />} />
+            <Route path="roles/create" element={<RoleCreate />} />
+            <Route path="roles/edit/:id" element={<RoleEdit />} />
+            <Route path="roles/:id" element={<RoleDetails />} />
           </Route>
         </Route>
 

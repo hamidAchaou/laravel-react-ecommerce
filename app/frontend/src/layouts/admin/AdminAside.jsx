@@ -1,5 +1,5 @@
 // src/layouts/admin/AdminAside.jsx
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import {
   Box,
   Drawer,
@@ -7,28 +7,93 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  ListItemIcon,
   Typography,
   Toolbar,
   useTheme,
+  Collapse,
+  IconButton,
 } from "@mui/material";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { BRAND_COLORS } from "../../theme/colors";
+import {
+  ExpandLess,
+  ExpandMore,
+  Dashboard,
+  ShoppingBag,
+  Category,
+  People,
+  Security,
+  Key,
+  AdminPanelSettings,
+  Group,
+} from "@mui/icons-material";
 
 const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
   const theme = useTheme();
-
+  const location = useLocation();
+  
   // ✅ Always use dark palette for the sidebar
   const colors = BRAND_COLORS.dark;
 
-  const navItems = [
-    { to: "/admin", label: "Dashboard" },
-    { to: "/admin/products", label: "Products" },
-    { to: "/admin/orders", label: "Orders" },
-    { to: "/admin/categories", label: "categories" },
-    { to: "/admin/users", label: "Users" },
+  // State for expandable sections
+  const [accessControlOpen, setAccessControlOpen] = useState(true);
+
+  const toggleAccessControl = () => {
+    setAccessControlOpen(!accessControlOpen);
+  };
+
+  // Navigation items structure
+  const navSections = [
+    {
+      id: "dashboard",
+      to: "/admin",
+      label: "Dashboard",
+      icon: <Dashboard fontSize="small" />,
+    },
+    {
+      id: "products",
+      to: "/admin/products",
+      label: "Products",
+      icon: <ShoppingBag fontSize="small" />,
+    },
+    {
+      id: "orders",
+      to: "/admin/orders",
+      label: "Orders",
+      icon: <Category fontSize="small" />,
+    },
+    {
+      id: "categories",
+      to: "/admin/categories",
+      label: "Categories",
+      icon: <Category fontSize="small" />,
+    },
   ];
 
-  const renderNavItem = (item) => (
+  const accessControlItems = [
+    {
+      id: "users",
+      to: "/admin/users",
+      label: "Users",
+      icon: <People fontSize="small" />,
+    },
+    {
+      id: "roles",
+      to: "/admin/roles",
+      label: "Roles",
+      icon: <Security fontSize="small" />,
+    },
+    // You can add permissions later if needed
+    // {
+    //   id: "permissions",
+    //   to: "/admin/permissions",
+    //   label: "Permissions",
+    //   icon: <Key fontSize="small" />,
+    // },
+  ];
+
+  const renderNavItem = (item, level = 0) => (
     <ListItemButton
       key={item.to}
       component={NavLink}
@@ -38,6 +103,9 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
         "&.active": {
           bgcolor: colors.primary,
           color: colors.surface,
+          "& .MuiListItemIcon-root": {
+            color: colors.surface,
+          },
         },
         "&:hover": {
           bgcolor: "rgba(255,255,255,0.08)",
@@ -46,13 +114,26 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
         borderRadius: 2,
         color: colors.textPrimary,
         transition: "all 0.2s ease-in-out",
+        pl: 2 + level * 2,
+        py: 1,
+        mb: 0.5,
       }}
     >
+      {item.icon && (
+        <ListItemIcon
+          sx={{
+            minWidth: 40,
+            color: "inherit",
+          }}
+        >
+          {item.icon}
+        </ListItemIcon>
+      )}
       <ListItemText
         primary={item.label}
         primaryTypographyProps={{
           fontWeight: 500,
-          variant: "body1",
+          variant: "body2",
           sx: { textTransform: "capitalize" },
         }}
       />
@@ -62,8 +143,8 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
   const DrawerContent = (
     <Box
       sx={{
-        textAlign: "center",
-        bgcolor: colors.surface, // ✅ Always dark color from BRAND_COLORS.dark
+        textAlign: "left",
+        bgcolor: colors.surface,
         height: "100%",
         color: colors.textPrimary,
         display: "flex",
@@ -71,27 +152,97 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
         boxShadow: "inset 0 0 12px rgba(0,0,0,0.4)",
       }}
     >
-      <Toolbar />
+      {/* Header */}
+      <Toolbar>
+        <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+          <AdminPanelSettings 
+            sx={{ 
+              mr: 2, 
+              color: colors.accent,
+              fontSize: 28 
+            }} 
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: "bold",
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: colors.accent,
+              fontSize: "1.1rem",
+            }}
+          >
+            Admin
+          </Typography>
+        </Box>
+      </Toolbar>
 
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: "bold",
-          letterSpacing: 1,
-          mb: 2,
-          textTransform: "uppercase",
-          color: colors.accent,
-        }}
-      >
-        Admin Panel
-      </Typography>
+      <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", mb: 1 }} />
 
-      <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", mb: 2 }} />
+      {/* Main Navigation */}
+      <List sx={{ flexGrow: 1, py: 1 }}>
+        {/* Regular Sections */}
+        {navSections.map((item) => renderNavItem(item))}
 
-      <List sx={{ flexGrow: 1 }}>{navItems.map(renderNavItem)}</List>
+        <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", my: 2, mx: 2 }} />
 
-      <Box sx={{ py: 2 }}>
-        <Typography variant="caption" color={colors.textSecondary}>
+        {/* Access Control Section */}
+        <Box>
+          <ListItemButton
+            onClick={toggleAccessControl}
+            sx={{
+              mx: 1,
+              borderRadius: 2,
+              color: colors.textPrimary,
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                bgcolor: "rgba(255,255,255,0.08)",
+              },
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 40,
+                color: colors.accent,
+              }}
+            >
+              <Group fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Access Control"
+              primaryTypographyProps={{
+                fontWeight: 600,
+                variant: "body2",
+                fontSize: "0.9rem",
+              }}
+            />
+            {accessControlOpen ? (
+              <ExpandLess sx={{ color: colors.textSecondary, fontSize: 18 }} />
+            ) : (
+              <ExpandMore sx={{ color: colors.textSecondary, fontSize: 18 }} />
+            )}
+          </ListItemButton>
+
+          <Collapse in={accessControlOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {accessControlItems.map((item) => renderNavItem(item, 1))}
+            </List>
+          </Collapse>
+        </Box>
+      </List>
+
+      {/* Footer */}
+      <Box sx={{ py: 2, px: 2 }}>
+        <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", mb: 2 }} />
+        <Typography 
+          variant="caption" 
+          color={colors.textSecondary}
+          sx={{ 
+            display: "block", 
+            textAlign: "center",
+            fontSize: "0.75rem",
+          }}
+        >
           © {new Date().getFullYear()} Hamid Achaou
         </Typography>
       </Box>
@@ -111,7 +262,8 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            bgcolor: colors.surface, // ✅ stays dark
+            bgcolor: colors.surface,
+            borderRight: `1px solid ${colors.background}`,
           },
         }}
       >
@@ -127,7 +279,8 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            bgcolor: colors.surface, // ✅ stays dark
+            bgcolor: colors.surface,
+            borderRight: `1px solid ${colors.background}`,
           },
         }}
       >
