@@ -3,11 +3,14 @@ import authReducer from "../features/auth/authSlice";
 import productsReducer from "../features/products/productsSlice";
 import categoriesReducer from "../features/categories/categoriesSlice";
 import ordersReducer from "../features/orders/ordersSlice";
+import usersReducer from "../features/users/usersSlice";
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     products: productsReducer,
     categories: categoriesReducer,
     orders: ordersReducer,
+    users: usersReducer,
   },
 });
