@@ -17,30 +17,20 @@ class ClientRepository extends BaseRepository
      */
     public function create(array $data): Model
     {
-        // Ensure a valid user_id if user exists
-        if (isset($data['user_id'])) {
-            // could validate user existence here if needed
+        // Ensure valid user_id (if passed)
+        if (!empty($data['user_id'])) {
+            // Optional: validate user exists
         }
 
         return parent::create($data);
     }
 
-    /**
-     * Update client fields safely.
-     */
     public function update(array $data, mixed $id): Model
     {
         $client = $this->findOrFail($id);
 
-        $updatable = ['user_id', 'phone', 'address', 'country_id', 'city_id'];
-        foreach ($updatable as $field) {
-            if (array_key_exists($field, $data)) {
-                $client->{$field} = $data[$field];
-            }
-        }
+        $client->fill($data)->save();
 
-        $client->save();
-
-        return $client->fresh(['user', 'country', 'city']);
+        return $client->fresh(['user.roles', 'country', 'city']);
     }
 }
