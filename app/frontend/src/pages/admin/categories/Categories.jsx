@@ -1,122 +1,67 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+// src/pages/admin/Categories/Categories.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { DataGrid } from "@mui/x-data-grid";
 import {
   Box,
   Typography,
   Paper,
   CircularProgress,
   Chip,
-  Button,
-  IconButton,
   Avatar,
   useTheme,
-  Breadcrumbs,
-  Link,
+  alpha,
+  Card,
+  Stack,
+  Snackbar,
+  Alert
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import {
+  Category,
+  Collections
+} from "@mui/icons-material";
 import { fetchCategories, deleteCategory } from "../../../features/categories/categoriesThunks";
-import { useSnackbar } from "notistack";
+import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
+import DataTable from "../../../components/admin/DataTable/DataTable";
 import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
 
 const Categories = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
 
   const { items: categories = [], loading, error } = useSelector(
     (state) => state.categories
   );
 
-  const [rows, setRows] = useState([]);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alert, setAlert] = useState({ open: false, message: "", severity: "success" });
+  const [loadingExport, setLoadingExport] = useState(false);
 
-  // 🔹 Fetch categories on mount
+  // ✅ Fetch categories on mount
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 🔹 Map API data to DataGrid rows - FIXED: Use image_url from API
-  useEffect(() => {
-    if (!Array.isArray(categories)) return;
-    const mappedRows = categories.map((cat, index) => ({
-      id: cat.id || `row-${index}`,
-      name: cat.name || "—",
-      image_url: cat.image_url || null, // Use the full URL from API
-      image: cat.image || null,
-      parent_name: cat.parent_id
-        ? categories.find((c) => c.id === cat.parent_id)?.name || "—"
-        : "—",
-      type: cat.type || "—",
-      created_at: cat.created_at || null,
-      updated_at: cat.updated_at || null,
-    }));
-    setRows(mappedRows);
-  }, [categories]);
-
-  // 🔹 Handlers
-  const handleEdit = useCallback((id) => navigate(`/admin/categories/edit/${id}`), [navigate]);
-  
-  const handleView = useCallback((id) => navigate(`/admin/categories/${id}`), [navigate]);
-
-  const handleDeleteClick = useCallback((id) => {
-    const category = categories.find(cat => cat.id === id);
-    setCategoryToDelete({
-      id,
-      name: category?.name || 'this category'
-    });
-    setDeleteModalOpen(true);
-  }, [categories]);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!categoryToDelete) return;
-
-    try {
-      await dispatch(deleteCategory(categoryToDelete.id)).unwrap();
-      enqueueSnackbar(`Category "${categoryToDelete.name}" deleted successfully`, { 
-        variant: "success" 
-      });
-      // Refresh the categories list
-      dispatch(fetchCategories());
-    } catch (error) {
-      enqueueSnackbar(
-        error || `Failed to delete category "${categoryToDelete.name}"`, 
-        { variant: "error" }
-      );
-    } finally {
-      setDeleteModalOpen(false);
-      setCategoryToDelete(null);
-    }
-  }, [categoryToDelete, dispatch, enqueueSnackbar]);
-
-  const handleDeleteCancel = useCallback(() => {
-    setDeleteModalOpen(false);
-    setCategoryToDelete(null);
-  }, []);
-
-  // 🔹 Columns configuration with useMemo for performance
+  // ✅ Enhanced Table Columns with modern design
   const columns = useMemo(
     () => [
       {
         field: "image_url",
         headerName: "Image",
-        flex: 1,
+        width: 80,
         sortable: false,
         renderCell: (params) => (
           <Avatar
-            src={params.value || "/placeholder.png"}
+            src={params.value || "/api/placeholder/60/60"}
             alt={params.row.name}
             variant="rounded"
             sx={{
               width: 48,
               height: 48,
               borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100",
             }}
           >
@@ -128,234 +73,438 @@ const Categories = () => {
         field: "name", 
         headerName: "Category Name", 
         flex: 2,
+        minWidth: 200,
         renderCell: (params) => (
-          <Typography variant="body2" fontWeight={500}>
-            {params.value}
-          </Typography>
+          <Box>
+            <Typography variant="body1" fontWeight={600} color="text.primary">
+              {params.value || "—"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              ID: {params.row.id || "N/A"}
+            </Typography>
+          </Box>
         )
       },
       { 
         field: "parent_name", 
         headerName: "Parent Category", 
-        flex: 2,
+        flex: 1.5,
+        minWidth: 150,
         renderCell: (params) => (
-          <Typography variant="body2" color={params.value === "—" ? "text.secondary" : "text.primary"}>
-            {params.value}
-          </Typography>
+          <Chip
+            label={params.value || "None"}
+            size="small"
+            variant="outlined"
+            color={params.value === "—" ? "default" : "primary"}
+            sx={{
+              fontWeight: 500,
+              borderRadius: 1.5,
+              bgcolor: params.value !== "—" ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+              border: params.value !== "—" ? `1px solid ${alpha(theme.palette.primary.main, 0.2)}` : undefined,
+            }}
+          />
         )
       },
       {
         field: "type",
         headerName: "Type",
         flex: 1,
+        minWidth: 120,
         renderCell: (params) => (
           <Chip
             label={params.value ? params.value.charAt(0).toUpperCase() + params.value.slice(1) : "—"}
-            color={params.value === "product" ? "primary" : params.value === "service" ? "secondary" : "default"}
+            color={
+              params.value === "product" ? "primary" : 
+              params.value === "service" ? "secondary" : 
+              "default"
+            }
             size="small"
-            variant="outlined"
             sx={{ 
-              fontWeight: 500,
-              borderRadius: 1
+              fontWeight: 600,
+              borderRadius: 1.5,
+              bgcolor: (theme) => {
+                if (params.value === "product") return alpha(theme.palette.primary.main, 0.1);
+                if (params.value === "service") return alpha(theme.palette.secondary.main, 0.1);
+                return alpha(theme.palette.grey[500], 0.1);
+              },
+              border: (theme) => {
+                if (params.value === "product") return `1px solid ${alpha(theme.palette.primary.main, 0.2)}`;
+                if (params.value === "service") return `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`;
+                return `1px solid ${alpha(theme.palette.grey[500], 0.2)}`;
+              },
+            }}
+          />
+        ),
+      },
+      {
+        field: "product_count",
+        headerName: "Products",
+        flex: 1,
+        minWidth: 100,
+        align: "center",
+        headerAlign: "center",
+        renderCell: (params) => (
+          <Chip
+            label={params.value || 0}
+            size="small"
+            color="info"
+            variant="filled"
+            sx={{ 
+              fontWeight: 600,
+              minWidth: 40
             }}
           />
         ),
       },
       {
         field: "created_at",
-        headerName: "Created At",
-        flex: 1.3,
-        valueGetter: (params) =>
-          params?.row?.created_at
-            ? new Date(params.row.created_at).toLocaleDateString()
-            : "—",
+        headerName: "Created",
+        minWidth: 150,
         renderCell: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {params.value}
-          </Typography>
-        )
-      },
-      {
-        field: "updated_at",
-        headerName: "Updated At",
-        flex: 1.3,
-        valueGetter: (params) =>
-          params?.row?.updated_at
-            ? new Date(params.row.updated_at).toLocaleDateString()
-            : "—",
-        renderCell: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {params.value}
-          </Typography>
-        )
-      },
-      {
-        field: "actions",
-        headerName: "Actions",
-        flex: 1.5,
-        sortable: false,
-        filterable: false,
-        renderCell: (params) => (
-          <Box className="flex gap-1">
-            <IconButton 
-              color="primary" 
-              size="small" 
-              onClick={() => handleView(params.row.id)}
-              sx={{ 
-                '&:hover': { 
-                  backgroundColor: theme.palette.primary.light,
-                  color: 'white'
-                } 
-              }}
-              title="View Category"
-            >
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-            <IconButton 
-              color="success" 
-              size="small" 
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ 
-                '&:hover': { 
-                  backgroundColor: theme.palette.success.light,
-                  color: 'white'
-                } 
-              }}
-              title="Edit Category"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton 
-              color="error" 
-              size="small" 
-              onClick={() => handleDeleteClick(params.row.id)}
-              sx={{ 
-                '&:hover': { 
-                  backgroundColor: theme.palette.error.light,
-                  color: 'white'
-                } 
-              }}
-              title="Delete Category"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+          <Box>
+            <Typography variant="body2" fontWeight={500}>
+              {params.value ? new Date(params.value).toLocaleDateString("fr-FR") : "—"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.value ? new Date(params.value).toLocaleTimeString("fr-FR", { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }) : ""}
+            </Typography>
           </Box>
         ),
       },
     ],
-    [theme.palette.mode, handleEdit, handleDeleteClick, handleView, theme.palette]
+    [theme]
   );
 
-  return (
-    <Box component="main" sx={{ p: { xs: 2, md: 3 }, maxWidth: '100%', overflow: 'hidden' }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-        <Link component={RouterLink} to="/admin" underline="hover" color="inherit">
-          Dashboard
-        </Link>
-        <Typography color="text.primary">Categories</Typography>
-      </Breadcrumbs>
+  // ✅ Filter by search term
+  const filteredRows = useMemo(() => {
+    if (!searchTerm) return categories;
+    const term = searchTerm.toLowerCase();
+    return categories.filter(
+      (cat) =>
+        cat.name?.toLowerCase().includes(term) ||
+        cat.parent_name?.toLowerCase().includes(term) ||
+        cat.type?.toLowerCase().includes(term)
+    );
+  }, [categories, searchTerm]);
 
-      {/* Header */}
+  // ✅ Action handlers for DataTable
+  const handleView = useCallback((row) => {
+    navigate(`/admin/categories/${row.id}`);
+  }, [navigate]);
+
+  const handleEdit = useCallback((row) => {
+    navigate(`/admin/categories/edit/${row.id}`);
+  }, [navigate]);
+
+  const handleDelete = useCallback((row) => {
+    setDeleteTarget(row);
+  }, []);
+
+  const handleAddCategory = useCallback(
+    () => navigate("/admin/categories/create"),
+    [navigate]
+  );
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      await dispatch(deleteCategory(deleteTarget.id)).unwrap();
+      setAlert({ 
+        open: true, 
+        message: "Category deleted successfully", 
+        severity: "success" 
+      });
+      // Refresh the categories list
+      dispatch(fetchCategories());
+    } catch (err) {
+      setAlert({
+        open: true,
+        message: err || "Failed to delete category",
+        severity: "error",
+      });
+    } finally {
+      setDeleteTarget(null);
+    }
+  }, [dispatch, deleteTarget]);
+
+  const handleExport = useCallback(async () => {
+    setLoadingExport(true);
+    try {
+      // Simulate export process
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (!categories.length) {
+        setAlert({
+          open: true,
+          message: "No categories to export",
+          severity: "warning",
+        });
+        return;
+      }
+
+      const headers = ["ID", "Name", "Type", "Parent Category", "Created At"];
+      const csvRows = categories.map(
+        (cat) =>
+          `${cat.id},"${cat.name?.replace(/"/g, '""') || ''}","${cat.type || ''}","${
+            cat.parent_name || ""
+          }","${cat.created_at || ""}"`
+      );
+
+      const csvString = [headers.join(","), ...csvRows].join("\n");
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `categories_export_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      setAlert({
+        open: true,
+        message: "Categories exported successfully",
+        severity: "success",
+      });
+    } catch (err) {
+      setAlert({
+        open: true,
+        message: "Failed to export categories",
+        severity: "error",
+      });
+    } finally {
+      setLoadingExport(false);
+    }
+  }, [categories]);
+
+  const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
+
+  // ✅ Stats calculation
+  const stats = useMemo(() => ({
+    total: categories.length,
+    filtered: filteredRows.length,
+    productCategories: categories.filter(cat => cat.type === 'product').length,
+    serviceCategories: categories.filter(cat => cat.type === 'service').length,
+    parentCategories: categories.filter(cat => !cat.parent_id).length,
+    subCategories: categories.filter(cat => cat.parent_id).length,
+  }), [categories, filteredRows]);
+
+  // ✅ Enhanced DataGrid styling
+  const dataGridStyles = {
+    border: "none",
+    '& .MuiDataGrid-columnHeaders': {
+      backgroundColor: alpha(theme.palette.primary.main, 0.05),
+      borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+      borderRadius: '12px 12px 0 0',
+    },
+    '& .MuiDataGrid-columnHeaderTitle': {
+      fontWeight: 700,
+      color: theme.palette.text.primary,
+    },
+    '& .MuiDataGrid-cell': {
+      borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+    },
+    '& .MuiDataGrid-row': {
+      '&:hover': {
+        backgroundColor: alpha(theme.palette.primary.main, 0.02),
+      },
+    },
+    '& .MuiDataGrid-footerContainer': {
+      borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+      borderRadius: '0 0 12px 12px',
+    },
+  };
+
+  // ✅ Loading / Error UI
+  if (loading) {
+    return (
       <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        mb: 4, 
-        flexWrap: "wrap", 
-        gap: 2 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '60vh',
+        flexDirection: 'column',
+        gap: 2
       }}>
-        <Typography variant="h4" fontWeight={700} color={theme.palette.text.primary}>
-          Categories Management
+        <CircularProgress size={40} />
+        <Typography variant="h6" color="text.secondary">
+          Loading categories...
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate("/admin/categories/create")}
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card sx={{ 
+        p: 4, 
+        textAlign: 'center',
+        bgcolor: alpha(theme.palette.error.main, 0.05),
+        border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+        borderRadius: 3,
+        mx: 3,
+        mt: 3
+      }}>
+        <Typography variant="h6" color="error" gutterBottom>
+          Error Loading Categories
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {error}
+        </Typography>
+      </Card>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header Section */}
+      <Stack spacing={3}>
+        <Box>
+          <Typography variant="h4" fontWeight={700} color="text.primary" gutterBottom>
+            Categories Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Organize your products and services with categories
+          </Typography>
+        </Box>
+
+        {/* Stats Cards */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Card sx={{ 
+            p: 2.5, 
+            flex: 1,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+            borderRadius: 3,
+          }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Category color="primary" />
+              <Box>
+                <Typography variant="h4" fontWeight={700} color="primary.main">
+                  {stats.total}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total Categories
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
+
+          <Card sx={{ 
+            p: 2.5, 
+            flex: 1,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+            borderRadius: 3,
+          }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Collections color="success" />
+              <Box>
+                <Typography variant="h6" fontWeight={700} color="success.main">
+                  {stats.productCategories}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Product Categories
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
+
+          <Card sx={{ 
+            p: 2.5, 
+            flex: 1,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+            borderRadius: 3,
+          }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Category color="info" />
+              <Box>
+                <Typography variant="h6" fontWeight={700} color="info.main">
+                  {stats.subCategories}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Sub Categories
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
+        </Stack>
+
+        {/* Toolbar */}
+        <DataTableToolbar
+          title="Categories"
+          onAddClick={handleAddCategory}
+          onSearchChange={setSearchTerm}
+          onExportClick={handleExport}
+          searchValue={searchTerm}
+          searchPlaceholder="Search by name, type, or parent..."
+          addLabel="Add Category"
+          resultCount={filteredRows.length}
+          totalCount={categories.length}
+          loadingExport={loadingExport}
           sx={{
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            px: 3
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            p: 2.5,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+          }}
+        />
+
+        {/* Data Table */}
+        <Paper
+          sx={{
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            background: 'background.paper'
           }}
         >
-          Add New Category
-        </Button>
-      </Box>
-
-      {/* Data Table */}
-      <Paper
-        sx={{
-          width: "100%",
-          p: 3,
-          borderRadius: 3,
-          backgroundColor: theme.palette.background.paper,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          border: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 400 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Typography color="error" align="center" sx={{ py: 6 }}>
-            Error loading categories: {error}
-          </Typography>
-        ) : rows.length === 0 ? (
-          <Box sx={{ textAlign: "center", py: 6 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No categories found
-            </Typography>
-            <Button 
-              variant="outlined" 
-              onClick={() => navigate("/admin/categories/create")}
-              sx={{ mt: 2 }}
-            >
-              Create First Category
-            </Button>
-          </Box>
-        ) : (
-          <DataGrid
-            rows={rows}
+          <DataTable
             columns={columns}
-            pageSizeOptions={[5, 10, 25, 50]}
-            initialState={{ 
-              pagination: { paginationModel: { pageSize: 10 } },
-              sorting: { sortModel: [{ field: 'updated_at', sort: 'desc' }] }
-            }}
-            autoHeight
-            disableRowSelectionOnClick
-            sx={{
-              "& .MuiDataGrid-cell": { 
-                outline: "none !important",
-                borderBottom: `1px solid ${theme.palette.divider}`,
-              },
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.50',
-                borderBottom: `2px solid ${theme.palette.divider}`,
-              },
-              "& .MuiDataGrid-row:hover": {
-                backgroundColor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.50',
-              },
-              border: "none",
-              fontSize: 14,
-              '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-                outline: 'none !important',
-              },
-            }}
+            rows={filteredRows}
+            loading={loading}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            pageSize={10}
+            rowsPerPageOptions={[5, 10, 25]}
+            sx={dataGridStyles}
           />
-        )}
-      </Paper>
+        </Paper>
+      </Stack>
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
-        open={deleteModalOpen}
-        handleClose={handleDeleteCancel}
-        handleDeleteConfirm={handleDeleteConfirm}
+        open={!!deleteTarget}
+        handleClose={() => setDeleteTarget(null)}
+        handleDeleteConfirm={confirmDelete}
         title="Delete Category"
-        message={`Are you sure you want to delete "${categoryToDelete?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
       />
+
+      {/* Alert Snackbar */}
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={4000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          variant="filled"
+          sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
