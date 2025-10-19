@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\RoleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
@@ -39,3 +40,6 @@ Route::apiResource('orders', OrderController::class);
 // Route::middleware(['auth:sanctum', 'role:admin|seller'])->group(function () {
     Route::apiResource('clients', ClientController::class);
 // });
+
+// role
+Route::apiResource('roles', RoleController::class);
