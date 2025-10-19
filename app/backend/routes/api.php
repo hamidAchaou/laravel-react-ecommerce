@@ -33,13 +33,15 @@ Route::apiResource('orders', OrderController::class);
 
 // 👤 User Management (Admin only)
 // Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::apiResource('users', UserController::class);
+Route::apiResource('users', UserController::class);
 // });
 
 // 🛍️ Clients (Customers only)
 // Route::middleware(['auth:sanctum', 'role:admin|seller'])->group(function () {
-    Route::apiResource('clients', ClientController::class);
+Route::apiResource('clients', ClientController::class);
 // });
 
 // role
-Route::apiResource('roles', RoleController::class);
+// Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::apiResource('roles', RoleController::class);
+// });
