@@ -13,17 +13,20 @@ import {
   Alert,
   Card,
   useTheme,
-  alpha
+  alpha,
+  MenuItem,
+  TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
   Inventory2,
-  TrendingUp
+  TrendingUp,
 } from "@mui/icons-material";
 import {
   fetchProducts,
   deleteProduct,
 } from "../../../features/products/productsThunks";
+import { fetchCategories } from "../../../features/categories/categoriesThunks";
 import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
 import DataTable from "../../../components/admin/DataTable/DataTable";
 import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
@@ -33,19 +36,25 @@ export default function Products() {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  const { items: products, loading, error } = useSelector(
+  const { items: products, loading: productsLoading, error: productsError } = useSelector(
     (state) => state.products
+  );
+
+  const { items: categories, loading: categoriesLoading } = useSelector(
+    (state) => state.categories
   );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [alert, setAlert] = useState({ open: false, message: "", severity: "success" });
   const [loadingExport, setLoadingExport] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("");
 
-  // ✅ Fetch products on mount
+  // ✅ Fetch products and categories on mount
   useEffect(() => {
     if (!products.length) dispatch(fetchProducts());
-  }, [dispatch, products.length]);
+    if (!categories.length) dispatch(fetchCategories());
+  }, [dispatch, products.length, categories.length]);
 
   // ✅ Category colors for chips
   const getCategoryColor = (categoryName) => {
@@ -54,9 +63,26 @@ export default function Products() {
       "Leatherwork": "secondary", 
       "Woodwork": "success",
       "Metalwork": "warning",
+      "Pottery & Ceramics": "info",
+      "Jewelry & Accessories": "secondary",
+      "Traditional Clothing": "primary",
       "default": "info"
     };
     return colors[categoryName] || colors.default;
+  };
+
+  // ✅ Stock status color
+  const getStockColor = (stock) => {
+    if (stock === 0) return "error";
+    if (stock <= 10) return "warning";
+    return "success";
+  };
+
+  // ✅ Stock status text
+  const getStockText = (stock) => {
+    if (stock === 0) return "Out of Stock";
+    if (stock <= 10) return "Low Stock";
+    return "In Stock";
   };
 
   // ✅ Enhanced Table Columns with modern design
@@ -108,17 +134,31 @@ export default function Products() {
             <Typography variant="body1" fontWeight={700} color="primary.main">
               {params.value ? `${parseFloat(params.value).toFixed(2)} MAD` : "—"}
             </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "stock",
+        headerName: "Stock",
+        minWidth: 120,
+        align: "center",
+        headerAlign: "center",
+        renderCell: (params) => (
+          <Box textAlign="center">
             <Chip
-              label="In Stock"
+              label={params.value || 0}
               size="small"
-              color="success"
-              variant="outlined"
+              color={getStockColor(params.value)}
+              variant="filled"
               sx={{ 
-                height: 20, 
-                fontSize: '0.65rem',
-                fontWeight: 500
+                fontWeight: 600,
+                minWidth: 50,
+                mb: 0.5
               }}
             />
+            <Typography variant="caption" color="text.secondary" display="block">
+              {getStockText(params.value)}
+            </Typography>
           </Box>
         ),
       },
@@ -169,17 +209,51 @@ export default function Products() {
     [theme]
   );
 
-  // ✅ Filter by search term
+  // ✅ Category counts for filter dropdown
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    products.forEach(product => {
+      const categoryName = product.category?.name;
+      if (categoryName) {
+        counts[categoryName] = (counts[categoryName] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [products]);
+
+  // ✅ Get unique categories with counts
+  const availableCategories = useMemo(() => {
+    const uniqueCategories = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
+    return uniqueCategories.sort().map(category => ({
+      name: category,
+      count: categoryCounts[category] || 0
+    }));
+  }, [products, categoryCounts]);
+
+  // ✅ Advanced filtering logic
   const filteredRows = useMemo(() => {
-    if (!searchTerm) return products;
-    const term = searchTerm.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.title?.toLowerCase().includes(term) ||
-        p.category?.name?.toLowerCase().includes(term) ||
-        p.sku?.toLowerCase().includes(term)
-    );
-  }, [products, searchTerm]);
+    let filtered = products;
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.title?.toLowerCase().includes(term) ||
+          p.category?.name?.toLowerCase().includes(term) ||
+          p.sku?.toLowerCase().includes(term)
+      );
+    }
+
+    // Category filter
+    if (categoryFilter) {
+      filtered = filtered.filter(p => 
+        p.category?.name === categoryFilter
+      );
+    }
+
+    return filtered;
+  }, [products, searchTerm, categoryFilter]);
 
   // ✅ Action handlers for DataTable
   const handleView = useCallback((row) => {
@@ -222,10 +296,9 @@ export default function Products() {
   const handleExport = useCallback(async () => {
     setLoadingExport(true);
     try {
-      // Simulate export process
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (!products.length) {
+      if (!filteredRows.length) {
         setAlert({
           open: true,
           message: "No products to export",
@@ -234,10 +307,10 @@ export default function Products() {
         return;
       }
 
-      const headers = ["ID", "Title", "Price", "Category", "SKU", "Created At"];
-      const csvRows = products.map(
+      const headers = ["ID", "Title", "Price", "Stock", "Category", "SKU", "Created At"];
+      const csvRows = filteredRows.map(
         (p) =>
-          `${p.id},"${p.title?.replace(/"/g, '""') || ''}",${p.price || 0},"${
+          `${p.id},"${p.title?.replace(/"/g, '""') || ''}",${p.price || 0},${p.stock || 0},"${
             p.category?.name || ""
           }","${p.sku || ""}","${p.created_at || ""}"`
       );
@@ -265,7 +338,7 @@ export default function Products() {
     } finally {
       setLoadingExport(false);
     }
-  }, [products]);
+  }, [filteredRows]);
 
   const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
 
@@ -275,8 +348,12 @@ export default function Products() {
     filtered: filteredRows.length,
     totalValue: products.reduce((sum, product) => sum + (product.price || 0), 0),
     averagePrice: products.length > 0 ? 
-      products.reduce((sum, product) => sum + (product.price || 0), 0) / products.length : 0
-  }), [products, filteredRows]);
+      products.reduce((sum, product) => sum + (product.price || 0), 0) / products.length : 0,
+    outOfStock: products.filter(p => p.stock === 0).length,
+    lowStock: products.filter(p => p.stock > 0 && p.stock <= 10).length,
+    inStock: products.filter(p => p.stock > 10).length,
+    categoriesCount: availableCategories.length,
+  }), [products, filteredRows, availableCategories]);
 
   // ✅ Enhanced DataGrid styling
   const dataGridStyles = {
@@ -297,12 +374,6 @@ export default function Products() {
       '&:hover': {
         backgroundColor: alpha(theme.palette.primary.main, 0.02),
       },
-      '&.Mui-selected': {
-        backgroundColor: alpha(theme.palette.primary.main, 0.08),
-        '&:hover': {
-          backgroundColor: alpha(theme.palette.primary.main, 0.12),
-        },
-      },
     },
     '& .MuiDataGrid-footerContainer': {
       borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
@@ -311,7 +382,7 @@ export default function Products() {
   };
 
   // ✅ Loading / Error UI
-  if (loading) {
+  if (productsLoading) {
     return (
       <Box sx={{ 
         display: 'flex', 
@@ -329,7 +400,7 @@ export default function Products() {
     );
   }
 
-  if (error) {
+  if (productsError) {
     return (
       <Card sx={{ 
         p: 4, 
@@ -344,7 +415,7 @@ export default function Products() {
           Error Loading Products
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {error}
+          {productsError}
         </Typography>
       </Card>
     );
@@ -363,7 +434,7 @@ export default function Products() {
           </Typography>
         </Box>
 
-        {/* Stats Cards */}
+        {/* Enhanced Stats Cards */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Card sx={{ 
             p: 2.5, 
@@ -404,6 +475,46 @@ export default function Products() {
               </Box>
             </Stack>
           </Card>
+
+          <Card sx={{ 
+            p: 2.5, 
+            flex: 1,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.warning.main, 0.1)}`,
+            borderRadius: 3,
+          }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Inventory2 color="warning" />
+              <Box>
+                <Typography variant="h6" fontWeight={700} color="warning.main">
+                  {stats.lowStock}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Low Stock
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
+
+          <Card sx={{ 
+            p: 2.5, 
+            flex: 1,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+            borderRadius: 3,
+          }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Inventory2 color="info" />
+              <Box>
+                <Typography variant="h6" fontWeight={700} color="info.main">
+                  {stats.categoriesCount}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Categories
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
         </Stack>
 
         {/* Toolbar */}
@@ -427,6 +538,40 @@ export default function Products() {
           }}
         />
 
+        {/* Category Filter - Similar to Orders Status Filter */}
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            select
+            size="small"
+            label="Filter by Category"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            sx={{ width: 280 }}
+            disabled={categoriesLoading}
+          >
+            <MenuItem value="">
+              <Typography variant="body2">All Categories</Typography>
+              <Chip 
+                label={stats.total} 
+                size="small" 
+                sx={{ ml: 1, height: 20 }} 
+              />
+            </MenuItem>
+            {availableCategories.map((category) => (
+              <MenuItem key={category.name} value={category.name}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <Typography variant="body2">{category.name}</Typography>
+                  <Chip 
+                    label={category.count} 
+                    size="small" 
+                    sx={{ ml: 1, height: 20 }} 
+                  />
+                </Box>
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+
         {/* Data Table */}
         <Paper
           sx={{
@@ -440,7 +585,7 @@ export default function Products() {
           <DataTable
             columns={columns}
             rows={filteredRows}
-            loading={loading}
+            loading={productsLoading}
             onView={handleView}
             onEdit={handleEdit}
             onDelete={handleDelete}

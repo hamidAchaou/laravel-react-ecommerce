@@ -18,7 +18,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import {
   Category,
-  Collections
+  Collections,
+  FolderSpecial
 } from "@mui/icons-material";
 import { fetchCategories, deleteCategory } from "../../../features/categories/categoriesThunks";
 import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
@@ -43,6 +44,25 @@ const Categories = () => {
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
+
+  // ✅ Prepare rows data with proper parent category names
+  const rows = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+    
+    return categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      image_url: category.image_url,
+      parent_name: category.parent ? category.parent.name : "None",
+      parent_id: category.parent_id,
+      type: category.type,
+      description: category.description,
+      created_at: category.created_at,
+      updated_at: category.updated_at,
+      // You can add product_count if available from your API
+      product_count: category.products_count || 0,
+    }));
+  }, [categories]);
 
   // ✅ Enhanced Table Columns with modern design
   const columns = useMemo(
@@ -92,15 +112,17 @@ const Categories = () => {
         minWidth: 150,
         renderCell: (params) => (
           <Chip
-            label={params.value || "None"}
+            label={params.value}
             size="small"
             variant="outlined"
-            color={params.value === "—" ? "default" : "primary"}
+            color={params.value === "None" ? "default" : "primary"}
             sx={{
               fontWeight: 500,
               borderRadius: 1.5,
-              bgcolor: params.value !== "—" ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-              border: params.value !== "—" ? `1px solid ${alpha(theme.palette.primary.main, 0.2)}` : undefined,
+              bgcolor: params.value !== "None" ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.grey[500], 0.1),
+              border: params.value !== "None" ? 
+                `1px solid ${alpha(theme.palette.primary.main, 0.2)}` : 
+                `1px solid ${alpha(theme.palette.grey[500], 0.2)}`,
             }}
           />
         )
@@ -180,15 +202,16 @@ const Categories = () => {
 
   // ✅ Filter by search term
   const filteredRows = useMemo(() => {
-    if (!searchTerm) return categories;
+    if (!searchTerm) return rows;
     const term = searchTerm.toLowerCase();
-    return categories.filter(
+    return rows.filter(
       (cat) =>
         cat.name?.toLowerCase().includes(term) ||
         cat.parent_name?.toLowerCase().includes(term) ||
-        cat.type?.toLowerCase().includes(term)
+        cat.type?.toLowerCase().includes(term) ||
+        cat.description?.toLowerCase().includes(term)
     );
-  }, [categories, searchTerm]);
+  }, [rows, searchTerm]);
 
   // ✅ Action handlers for DataTable
   const handleView = useCallback((row) => {
@@ -236,7 +259,7 @@ const Categories = () => {
       // Simulate export process
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (!categories.length) {
+      if (!rows.length) {
         setAlert({
           open: true,
           message: "No categories to export",
@@ -245,12 +268,12 @@ const Categories = () => {
         return;
       }
 
-      const headers = ["ID", "Name", "Type", "Parent Category", "Created At"];
-      const csvRows = categories.map(
+      const headers = ["ID", "Name", "Type", "Parent Category", "Description", "Created At"];
+      const csvRows = rows.map(
         (cat) =>
           `${cat.id},"${cat.name?.replace(/"/g, '""') || ''}","${cat.type || ''}","${
-            cat.parent_name || ""
-          }","${cat.created_at || ""}"`
+            cat.parent_name || "None"
+          }","${cat.description?.replace(/"/g, '""') || ''}","${cat.created_at || ""}"`
       );
 
       const csvString = [headers.join(","), ...csvRows].join("\n");
@@ -276,19 +299,37 @@ const Categories = () => {
     } finally {
       setLoadingExport(false);
     }
-  }, [categories]);
+  }, [rows]);
 
   const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
 
-  // ✅ Stats calculation
-  const stats = useMemo(() => ({
-    total: categories.length,
-    filtered: filteredRows.length,
-    productCategories: categories.filter(cat => cat.type === 'product').length,
-    serviceCategories: categories.filter(cat => cat.type === 'service').length,
-    parentCategories: categories.filter(cat => !cat.parent_id).length,
-    subCategories: categories.filter(cat => cat.parent_id).length,
-  }), [categories, filteredRows]);
+  // ✅ Stats calculation - using the actual categories data
+  const stats = useMemo(() => {
+    const total = categories.length;
+    const parentCategories = categories.filter(cat => !cat.parent_id).length;
+    const subCategories = categories.filter(cat => cat.parent_id).length;
+    const productCategories = categories.filter(cat => cat.type === 'product').length;
+    const serviceCategories = categories.filter(cat => cat.type === 'service').length;
+
+    return {
+      total,
+      filtered: filteredRows.length,
+      productCategories,
+      serviceCategories,
+      parentCategories,
+      subCategories,
+      // Calculate hierarchy depth (simplified)
+      maxDepth: Math.max(...categories.map(cat => {
+        let depth = 0;
+        let current = cat;
+        while (current.parent_id) {
+          depth++;
+          current = categories.find(c => c.id === current.parent_id) || {};
+        }
+        return depth;
+      }))
+    };
+  }, [categories, filteredRows]);
 
   // ✅ Enhanced DataGrid styling
   const dataGridStyles = {
@@ -365,11 +406,11 @@ const Categories = () => {
             Categories Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Organize your products and services with categories
+            Organize your products and services with hierarchical categories
           </Typography>
         </Box>
 
-        {/* Stats Cards */}
+        {/* Enhanced Stats Cards */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Card sx={{ 
             p: 2.5, 
@@ -401,7 +442,7 @@ const Categories = () => {
             <Stack direction="row" alignItems="center" spacing={2}>
               <Collections color="success" />
               <Box>
-                <Typography variant="h6" fontWeight={700} color="success.main">
+                <Typography variant="h4" fontWeight={700} color="success.main">
                   {stats.productCategories}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -419,9 +460,29 @@ const Categories = () => {
             borderRadius: 3,
           }}>
             <Stack direction="row" alignItems="center" spacing={2}>
-              <Category color="info" />
+              <FolderSpecial color="info" />
               <Box>
-                <Typography variant="h6" fontWeight={700} color="info.main">
+                <Typography variant="h4" fontWeight={700} color="info.main">
+                  {stats.parentCategories}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Parent Categories
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
+
+          <Card sx={{ 
+            p: 2.5, 
+            flex: 1,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.warning.main, 0.1)}`,
+            borderRadius: 3,
+          }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Category color="warning" />
+              <Box>
+                <Typography variant="h4" fontWeight={700} color="warning.main">
                   {stats.subCategories}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -439,7 +500,7 @@ const Categories = () => {
           onSearchChange={setSearchTerm}
           onExportClick={handleExport}
           searchValue={searchTerm}
-          searchPlaceholder="Search by name, type, or parent..."
+          searchPlaceholder="Search by name, type, parent, or description..."
           addLabel="Add Category"
           resultCount={filteredRows.length}
           totalCount={categories.length}

@@ -8,7 +8,7 @@ import {
   Link,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import RoleForm from '../../../components/admin/Roles/RoleForm';
+import RoleForm from './RoleForm';
 
 const RoleCreate = () => {
   return (
