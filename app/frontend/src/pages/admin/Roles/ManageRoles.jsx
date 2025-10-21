@@ -1,4 +1,4 @@
-// src/pages/admin/Roles/Roles.jsx
+// src/pages/admin/Roles/ManageRoles.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -25,6 +25,41 @@ import { fetchRoles, deleteRole } from "../../../features/roles/rolesThunks";
 import DataTableToolbar from "../../../components/admin/DataTable/DataTableToolbar";
 import DataTable from "../../../components/admin/DataTable/DataTable";
 import DeleteConfirmationModal from "../../../components/admin/common/DeleteConfirmationModal";
+
+// Helper functions for Spatie role data
+const formatDisplayName = (roleName) => {
+  const displayNames = {
+    'super_admin': 'Super Administrator',
+    'admin': 'Administrator',
+    'moderator': 'Moderator', 
+    'user': 'User',
+  };
+  
+  return displayNames[roleName] || 
+    roleName.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+};
+
+const getRoleDescription = (roleName) => {
+  const descriptions = {
+    'super_admin': 'Has full access to all system features',
+    'admin': 'Can manage users and content',
+    'moderator': 'Can moderate content and manage comments',
+    'user': 'Regular system user with basic permissions',
+  };
+  
+  return descriptions[roleName] || 'Custom user role';
+};
+
+const getRoleType = (roleName) => {
+  const systemRoles = ['super_admin', 'admin', 'user'];
+  const adminRoles = ['admin', 'moderator'];
+  
+  if (systemRoles.includes(roleName)) return 'system';
+  if (adminRoles.includes(roleName)) return 'admin';
+  return 'custom';
+};
 
 export default function ManageRoles() {
   const dispatch = useDispatch();
@@ -54,10 +89,13 @@ export default function ManageRoles() {
         renderCell: (params) => (
           <Box>
             <Typography variant="body1" fontWeight={600} color="text.primary">
-              {params.value || "—"}
+              {formatDisplayName(params.value) || "—"}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               ID: {params.row.id || "N/A"}
+            </Typography>
+            <Typography variant="caption" display="block" color="text.secondary">
+              {params.value} {/* Show actual role name */}
             </Typography>
           </Box>
         ),
@@ -155,17 +193,19 @@ export default function ManageRoles() {
     [theme]
   );
 
-  // ✅ Prepare rows data
+  // ✅ Prepare rows data for Spatie
   const rows = useMemo(() => {
     if (!Array.isArray(roles)) return [];
     return roles.map((role) => ({
       id: role.id,
       name: role.name,
+      displayName: formatDisplayName(role.name),
+      description: getRoleDescription(role.name),
       permissionsCount: role.permissions?.length || 0,
       usersCount: role.users?.length || 0,
-      type: role.type || "system",
+      type: getRoleType(role.name),
       created_at: role.created_at,
-      description: role.description,
+      isSystem: ['super_admin', 'admin', 'user'].includes(role.name),
     }));
   }, [roles]);
 
@@ -176,6 +216,7 @@ export default function ManageRoles() {
     return rows.filter(
       (role) =>
         role.name?.toLowerCase().includes(term) ||
+        role.displayName?.toLowerCase().includes(term) ||
         role.type?.toLowerCase().includes(term) ||
         role.description?.toLowerCase().includes(term)
     );
@@ -187,10 +228,26 @@ export default function ManageRoles() {
   }, [navigate]);
 
   const handleEdit = useCallback((row) => {
+    if (row.isSystem) {
+      setAlert({
+        open: true,
+        message: "System roles cannot be edited",
+        severity: "warning",
+      });
+      return;
+    }
     navigate(`/admin/roles/edit/${row.id}`);
   }, [navigate]);
 
   const handleDelete = useCallback((row) => {
+    if (row.isSystem) {
+      setAlert({
+        open: true,
+        message: "System roles cannot be deleted",
+        severity: "warning",
+      });
+      return;
+    }
     setDeleteTarget(row);
   }, []);
 
@@ -236,12 +293,12 @@ export default function ManageRoles() {
         return;
       }
 
-      const headers = ["ID", "Name", "Type", "Permissions Count", "Users Count", "Created At"];
-      const csvRows = roles.map(
+      const headers = ["ID", "Name", "Display Name", "Type", "Permissions Count", "Users Count", "Created At"];
+      const csvRows = rows.map(
         (role) =>
-          `${role.id},"${role.name?.replace(/"/g, '""') || ''}","${role.type || ''}",${
-            role.permissions?.length || 0
-          },${role.users?.length || 0},"${role.created_at || ""}"`
+          `${role.id},"${role.name?.replace(/"/g, '""') || ''}","${role.displayName || ''}","${role.type || ''}",${
+            role.permissionsCount || 0
+          },${role.usersCount || 0},"${role.created_at || ""}"`
       );
 
       const csvString = [headers.join(","), ...csvRows].join("\n");
@@ -267,7 +324,7 @@ export default function ManageRoles() {
     } finally {
       setLoadingExport(false);
     }
-  }, [roles]);
+  }, [roles, rows]);
 
   const handleCloseAlert = () => setAlert((prev) => ({ ...prev, open: false }));
 
@@ -275,12 +332,12 @@ export default function ManageRoles() {
   const stats = useMemo(() => ({
     total: roles.length,
     filtered: filteredRows.length,
-    adminRoles: roles.filter(role => role.type === 'admin').length,
-    customRoles: roles.filter(role => role.type === 'custom').length,
-    systemRoles: roles.filter(role => role.type === 'system').length,
-    totalPermissions: roles.reduce((sum, role) => sum + (role.permissions?.length || 0), 0),
-    totalUsers: roles.reduce((sum, role) => sum + (role.users?.length || 0), 0),
-  }), [roles, filteredRows]);
+    adminRoles: rows.filter(role => role.type === 'admin').length,
+    customRoles: rows.filter(role => role.type === 'custom').length,
+    systemRoles: rows.filter(role => role.type === 'system').length,
+    totalPermissions: rows.reduce((sum, role) => sum + (role.permissionsCount || 0), 0),
+    totalUsers: rows.reduce((sum, role) => sum + (role.usersCount || 0), 0),
+  }), [roles, filteredRows, rows]);
 
   // ✅ Enhanced DataGrid styling
   const dataGridStyles = {
@@ -495,7 +552,7 @@ export default function ManageRoles() {
         handleClose={() => setDeleteTarget(null)}
         handleDeleteConfirm={confirmDelete}
         title="Delete Role"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteTarget?.displayName || deleteTarget?.name}"? This action cannot be undone.`}
       />
 
       {/* Alert Snackbar */}

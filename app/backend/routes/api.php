@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\UserController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -45,3 +46,9 @@ Route::apiResource('clients', ClientController::class);
 // Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::apiResource('roles', RoleController::class);
 // });
+
+Route::apiResource('permissions', PermissionController::class);
+    
+// Additional routes
+Route::get('permissions-select', [PermissionController::class, 'getForSelect'])
+    ->name('permissions.select');

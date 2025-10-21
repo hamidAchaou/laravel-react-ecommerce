@@ -29,6 +29,8 @@ export const fetchRoleById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const { data } = await api.get(`/api/roles/${id}`);
+      console.log(data);
+      
       return data;
     } catch (error) {
       return rejectWithValue(
