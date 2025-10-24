@@ -84,13 +84,12 @@ const AdminAside = ({ mobileOpen, handleDrawerToggle, drawerWidth = 240 }) => {
       label: "Roles",
       icon: <Security fontSize="small" />,
     },
-    // You can add permissions later if needed
-    // {
-    //   id: "permissions",
-    //   to: "/admin/permissions",
-    //   label: "Permissions",
-    //   icon: <Key fontSize="small" />,
-    // },
+    {
+      id: "permissions",
+      to: "/admin/permissions",
+      label: "Permissions",
+      icon: <Key fontSize="small" />,
+    },
   ];
 
   const renderNavItem = (item, level = 0) => (

@@ -52,6 +52,12 @@ const RoleCreate = lazy(() => import("../pages/admin/Roles/RoleCreate"));
 const RoleEdit = lazy(() => import("../pages/admin/Roles/RoleEdit"));
 const RoleDetails = lazy(() => import("../pages/admin/Roles/RoleDetails"));
 
+// Permissions
+const ManagePermissions = lazy(() => import("../pages/admin/Permissions/ManagePermissions"));
+const PermissionCreate = lazy(() => import("../pages/admin/Permissions/PermissionCreate.jsx"));
+const PermissionEdit = lazy(() => import("../pages/admin/Permissions/PermissionEdit.jsx"));
+const PermissionDetails = lazy(() => import("../pages/admin/Permissions/PermissionDetails.jsx"));
+
 export default function AppRoutes() {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
@@ -99,11 +105,17 @@ export default function AppRoutes() {
             <Route path="users/edit/:id" element={<UsersEdit />} />
             <Route path="users/:id" element={<UsersDetails />} />
 
-            {/* Roles & Permissions */}
+            {/* Roles */}
             <Route path="roles" element={<ManageRoles />} />
             <Route path="roles/create" element={<RoleCreate />} />
             <Route path="roles/edit/:id" element={<RoleEdit />} />
             <Route path="roles/:id" element={<RoleDetails />} />
+
+            {/* Permissions - ADD THESE ROUTES */}
+            <Route path="permissions" element={<ManagePermissions />} />
+            <Route path="permissions/create" element={<PermissionCreate />} />
+            <Route path="permissions/edit/:id" element={<PermissionEdit />} />
+            <Route path="permissions/:id" element={<PermissionDetails />} />
           </Route>
         </Route>
 

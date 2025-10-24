@@ -5,17 +5,19 @@ import {
   fetchGroupedPermissions,
   createPermission,
   updatePermission,
-  deletePermission
+  deletePermission,
+  fetchPermissionById,
 } from "./permissionsThunks";
 
 const initialState = {
   items: [],
+  current: null,
   grouped: {},
   pagination: {
     current_page: 1,
     per_page: 15,
     total: 0,
-    last_page: 1
+    last_page: 1,
   },
   loading: false,
   error: null,
@@ -34,6 +36,7 @@ const permissionsSlice = createSlice({
     clearPermissions: (state) => {
       state.items = [];
       state.grouped = {};
+      state.currentPermission = null;
     },
     setPagination: (state, action) => {
       state.pagination = { ...state.pagination, ...action.payload };
@@ -41,7 +44,9 @@ const permissionsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch All Permissions
+      /** -----------------------------
+       * Fetch All Permissions
+       * ----------------------------- */
       .addCase(fetchPermissions.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -53,14 +58,17 @@ const permissionsSlice = createSlice({
           current_page: action.payload.meta?.current_page || 1,
           per_page: action.payload.meta?.per_page || 15,
           total: action.payload.meta?.total || 0,
-          last_page: action.payload.meta?.last_page || 1
+          last_page: action.payload.meta?.last_page || 1,
         };
       })
       .addCase(fetchPermissions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Fetch Grouped Permissions
+
+      /** -----------------------------
+       * Fetch Grouped Permissions
+       * ----------------------------- */
       .addCase(fetchGroupedPermissions.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -73,21 +81,43 @@ const permissionsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Create Permission
+
+      /** -----------------------------
+       * Fetch Single Permission
+       * ----------------------------- */
+      .addCase(fetchPermissionById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.currentPermission = null;
+      })
+      .addCase(fetchPermissionById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentPermission = action.payload.data || null;
+      })
+      .addCase(fetchPermissionById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      /** -----------------------------
+       * Create Permission
+       * ----------------------------- */
       .addCase(createPermission.pending, (state) => {
         state.operationLoading = true;
         state.operationError = null;
       })
       .addCase(createPermission.fulfilled, (state, action) => {
         state.operationLoading = false;
-        // Add new permission to the list
         state.items.unshift(action.payload.data);
       })
       .addCase(createPermission.rejected, (state, action) => {
         state.operationLoading = false;
         state.operationError = action.payload;
       })
-      // Update Permission
+
+      /** -----------------------------
+       * Update Permission
+       * ----------------------------- */
       .addCase(updatePermission.pending, (state) => {
         state.operationLoading = true;
         state.operationError = null;
@@ -95,23 +125,42 @@ const permissionsSlice = createSlice({
       .addCase(updatePermission.fulfilled, (state, action) => {
         state.operationLoading = false;
         const updatedPermission = action.payload.data;
-        const index = state.items.findIndex(item => item.id === updatedPermission.id);
+        const index = state.items.findIndex(
+          (item) => item.id === updatedPermission.id
+        );
         if (index !== -1) {
           state.items[index] = updatedPermission;
+        }
+        if (
+          state.currentPermission &&
+          state.currentPermission.id === updatedPermission.id
+        ) {
+          state.currentPermission = updatedPermission;
         }
       })
       .addCase(updatePermission.rejected, (state, action) => {
         state.operationLoading = false;
         state.operationError = action.payload;
       })
-      // Delete Permission
+
+      /** -----------------------------
+       * Delete Permission
+       * ----------------------------- */
       .addCase(deletePermission.pending, (state) => {
         state.operationLoading = true;
         state.operationError = null;
       })
       .addCase(deletePermission.fulfilled, (state, action) => {
         state.operationLoading = false;
-        state.items = state.items.filter(item => item.id !== action.payload);
+        state.items = state.items.filter(
+          (item) => item.id !== action.payload
+        );
+        if (
+          state.currentPermission &&
+          state.currentPermission.id === action.payload
+        ) {
+          state.currentPermission = null;
+        }
       })
       .addCase(deletePermission.rejected, (state, action) => {
         state.operationLoading = false;

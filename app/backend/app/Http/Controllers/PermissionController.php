@@ -16,11 +16,6 @@ class PermissionController extends Controller
     public function __construct(PermissionRepository $permissionRepository)
     {
         $this->permissionRepository = $permissionRepository;
-        
-        // $this->middleware('permission:view permissions')->only(['index', 'show', 'getForSelect']);
-        // $this->middleware('permission:create permissions')->only(['store']);
-        // $this->middleware('permission:edit permissions')->only(['update']);
-        // $this->middleware('permission:delete permissions')->only(['destroy']);
     }
 
     /**
@@ -76,7 +71,8 @@ class PermissionController extends Controller
             'guard_name' => 'sometimes|string|max:255|in:web,api',
         ]);
 
-        $permission = $this->permissionRepository->update($id, $validated);
+        // ✅ FIXED: Pass data array first, then ID (matching BaseRepository signature)
+        $permission = $this->permissionRepository->update($validated, $id);
 
         return response()->json([
             'message' => 'Permission updated successfully',

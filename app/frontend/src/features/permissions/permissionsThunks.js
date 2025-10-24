@@ -37,7 +37,6 @@ export const fetchGroupedPermissions = createAsyncThunk(
     }
   }
 );
-
 /**
  * Create new permission
  */
@@ -60,10 +59,11 @@ export const createPermission = createAsyncThunk(
  */
 export const updatePermission = createAsyncThunk(
   "permissions/update",
-  async ({ id, ...permissionData }, { rejectWithValue }) => {
+  async ({ id, data }, { rejectWithValue }) => {
     try {
-      const { data } = await api.put(`/api/permissions/${id}`, permissionData);
-      return data;
+      // ✅ Ensure we're sending the data object correctly
+      const response = await api.put(`/api/permissions/${id}`, data);
+      return response.data;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to update permission"
@@ -84,6 +84,23 @@ export const deletePermission = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete permission"
+      );
+    }
+  }
+);
+
+/**
+ * Fetch a single permission by ID
+ */
+export const fetchPermissionById = createAsyncThunk(
+  "permissions/fetchById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get(`/api/permissions/${id}`);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch permission details"
       );
     }
   }

@@ -26,7 +26,7 @@ class PermissionRepository extends BaseRepository
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%' . $filters['search'] . '%')
-                  ->orWhere('guard_name', 'like', '%' . $filters['search'] . '%');
+                    ->orWhere('guard_name', 'like', '%' . $filters['search'] . '%');
             });
         }
 
@@ -38,10 +38,10 @@ class PermissionRepository extends BaseRepository
         // Apply sorting
         $sortField = $this->validateSortField($filters['sort_by'] ?? 'name');
         $sortDirection = $this->validateSortDirection($filters['sort_direction'] ?? 'asc');
-        
+
         return $query->orderBy($sortField, $sortDirection)
-                    ->paginate($filters['per_page'] ?? $perPage)
-                    ->withQueryString();
+            ->paginate($filters['per_page'] ?? $perPage)
+            ->withQueryString();
     }
 
     /**
@@ -109,7 +109,7 @@ class PermissionRepository extends BaseRepository
 
         foreach ($permissions as $permission) {
             $existing = $this->findByName($permission['name'], $permission['guard_name'] ?? 'web');
-            
+
             if ($existing) {
                 $result->push($existing);
             } else {
@@ -164,6 +164,44 @@ class PermissionRepository extends BaseRepository
     }
 
     /**
+     * Update permission with additional validation
+     */
+    public function update(array $data, mixed $id): Permission
+    {
+        // ✅ Ensure data is an array
+        if (!is_array($data)) {
+            throw new \InvalidArgumentException('Update data must be an array');
+        }
+
+        $permission = $this->findById($id);
+        
+        // Prevent updating system permissions if needed
+        if ($this->isSystemPermission($permission->name)) {
+            throw new \RuntimeException('System permissions cannot be modified');
+        }
+
+        $permission->update($data);
+
+        return $permission->refresh();
+    }
+
+    /**
+     * Check if permission is a system permission
+     */
+    protected function isSystemPermission(string $permissionName): bool
+    {
+        $systemPermissions = [
+            'view permissions',
+            'create permissions', 
+            'edit permissions',
+            'delete permissions',
+            // Add other system permissions here
+        ];
+
+        return in_array($permissionName, $systemPermissions);
+    }
+
+    /**
      * Delete permission with Spatie relationship check
      * Override the base delete method to add business logic
      */
@@ -185,7 +223,7 @@ class PermissionRepository extends BaseRepository
     protected function validateSortField(string $field): string
     {
         $allowedFields = ['id', 'name', 'guard_name', 'created_at', 'updated_at'];
-        
+
         return in_array($field, $allowedFields) ? $field : 'name';
     }
 
