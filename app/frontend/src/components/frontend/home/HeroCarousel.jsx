@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ChevronLeft, ChevronRight, Play, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 const HeroCarousel = ({ slides }) => {
@@ -27,7 +33,7 @@ const HeroCarousel = ({ slides }) => {
   }, [slides.length]);
 
   return (
-    <section className="relative h-screen min-h-[100vh] overflow-hidden">
+    <section className="relative h-screen min-h-[90vh] overflow-hidden">
       {/* Hero Slides */}
       <AnimatePresence mode="wait">
         {slides.map(
@@ -64,9 +70,13 @@ const HeroCarousel = ({ slides }) => {
                     )}
 
                     {/* Title & Description */}
-                    <h1 className="text-4xl md:text-6xl font-bold mb-4">{slide.title}</h1>
+                    <h1 className="text-4xl md:text-6xl font-bold mb-4">
+                      {slide.title}
+                    </h1>
                     {slide.description && (
-                      <p className="text-lg md:text-2xl mb-6 max-w-xl">{slide.description}</p>
+                      <p className="text-lg md:text-2xl mb-6 max-w-xl">
+                        {slide.description}
+                      </p>
                     )}
 
                     {/* Call to Action */}
@@ -125,7 +135,9 @@ const HeroCarousel = ({ slides }) => {
             onClick={() => setCurrentSlide(index)}
             aria-label={`Go to slide ${index + 1}`}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              index === currentSlide ? "bg-white w-8" : "bg-white/50 hover:bg-white/70"
+              index === currentSlide
+                ? "bg-white w-8"
+                : "bg-white/50 hover:bg-white/70"
             }`}
           />
         ))}
@@ -133,6 +145,4 @@ const HeroCarousel = ({ slides }) => {
     </section>
   );
 };
-
-// Use memo to avoid unnecessary re-renders
 export default memo(HeroCarousel);
