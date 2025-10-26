@@ -19,6 +19,8 @@ const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
+const Categories = lazy(() => import("../pages/client/Categories/Categories"));
+
 // ===================== Admin Pages =====================
 // Dashboard
 const AdminDashboard = lazy(() => import("../pages/admin/Dashboard/Dashboard"));
@@ -67,6 +69,7 @@ export default function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/categories" element={<Categories />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 

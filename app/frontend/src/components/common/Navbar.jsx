@@ -17,14 +17,16 @@ import {
   Trash2,
   Plus,
   Minus,
-  ArrowRight
+  ArrowRight,
+  Grid, // ✅ Added for Categories
 } from "lucide-react";
 
-// Navigation configuration
+// ✅ Navigation configuration with Category link added
 const NAVIGATION_ITEMS = {
   common: [
     { path: "/", label: "Home", icon: Home },
-    { path: "/shop", label: "Shop", icon: Package }
+    { path: "/shop", label: "Shop", icon: Package },
+    { path: "/categories", label: "Categories", icon: Grid }, // ✅ Added category link
   ],
   client: [
     { path: "/orders", label: "Orders", icon: Package }
