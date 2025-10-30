@@ -1,14 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Star, Truck, Shield, ArrowRight } from 'lucide-react';
 
-// Import your local images
-import heroMain from '../../../assets/images/hero/hero-section-1.webp';
-import heroBg from '../../../assets/images/hero/hero-section-2.webp';
-import product1 from '../../../assets/images/hero/hero-section-3.webp';
-import product2 from '../../../assets/images/hero/hero-section-4.png';
-
 const HeroSection = () => {
+  const [imageErrors, setImageErrors] = useState({});
+  
   const features = [
     { icon: Truck, text: 'Free Shipping', subtext: 'On orders over $50' },
     { icon: Shield, text: 'Secure Payment', subtext: '100% protected' },
@@ -16,10 +12,26 @@ const HeroSection = () => {
   ];
 
   const productThumbnails = [
-    { image: heroMain, alt: "Featured Collection" },
-    { image: heroBg, alt: "New Arrivals" },
-    { image: product1, alt: "Summer Styles" },
-    { image: product2, alt: "Premium Fashion" }
+    { 
+      image: "/src/assets/images/hero/hero-section-1.webp", 
+      alt: "Featured Collection",
+      fallback: "https://picsum.photos/200/200?fashion&1"
+    },
+    { 
+      image: "/src/assets/images/hero/hero-section-2.webp", 
+      alt: "New Arrivals",
+      fallback: "https://picsum.photos/200/200?fashion&2"
+    },
+    { 
+      image: "/src/assets/images/hero/hero-section-3.webp", 
+      alt: "Summer Styles",
+      fallback: "https://picsum.photos/200/200?fashion&3"
+    },
+    { 
+      image: "/src/assets/images/hero/hero-section-4.png", 
+      alt: "Premium Fashion",
+      fallback: "https://picsum.photos/200/200?fashion&4"
+    }
   ];
 
   const containerVariants = {
@@ -57,6 +69,14 @@ const HeroSection = () => {
     }
   };
 
+  const handleImageError = (imageKey, fallbackUrl) => {
+    setImageErrors(prev => ({ ...prev, [imageKey]: fallbackUrl }));
+  };
+
+  const getImageSource = (imageKey, originalSrc, fallbackUrl) => {
+    return imageErrors[imageKey] || originalSrc;
+  };
+
   return (
     <section className="min-h-screen bg-gradient-to-br from-brand-background via-white to-brand-accent/20 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-24">
@@ -90,7 +110,7 @@ const HeroSection = () => {
 
             {/* CTA Buttons */}
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white flex items-center justify-center gap-2 text-lg px-8 py-4 rounded-xl hover-lift transition-all duration-300 shadow-lg">
+              <button className="bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white flex items-center justify-center gap-2 text-lg px-8 py-4 rounded-xl hover:scale-105 transition-all duration-300 shadow-lg">
                 Shop Now
                 <ArrowRight className="w-5 h-5" />
               </button>
@@ -146,19 +166,26 @@ const HeroSection = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 via-brand-secondary/5 to-brand-accent/10" />
                 
                 <img 
-                  src={heroBg} 
+                  src="https://picsum.photos/600/600?grayscale&blur=2"
                   alt="Fashion background texture"
                   className="absolute inset-0 w-full h-full object-cover mix-blend-soft-light opacity-30"
                   loading="lazy"
+                  onError={(e) => {
+                    e.target.src = "https://picsum.photos/600/600?grayscale&blur=2";
+                  }}
                 />
                 
                 <div className="text-center space-y-4 p-8 relative z-10">
                   <div className="w-64 h-64 mx-auto bg-white rounded-2xl shadow-2xl flex items-center justify-center overflow-hidden border border-brand-gray-100">
                     <img 
-                      src={heroMain} 
+                      src={getImageSource('main', "/src/assets/images/hero/hero-section-1.webp", "https://picsum.photos/300/300?fashion")}
                       alt="Featured fashion collection 2024"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="eager"
+                      onError={(e) => {
+                        handleImageError('main', "https://picsum.photos/300/300?fashion");
+                        e.target.src = "https://picsum.photos/300/300?fashion";
+                      }}
                     />
                   </div>
                   <p className="text-brand-text-secondary italic text-sm bg-white/80 backdrop-blur-sm py-2 px-4 rounded-full inline-block">
@@ -207,10 +234,14 @@ const HeroSection = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   <img 
-                    src={product.image} 
+                    src={getImageSource(`thumb-${index}`, product.image, product.fallback)}
                     alt={product.alt}
                     className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                     loading="lazy"
+                    onError={(e) => {
+                      handleImageError(`thumb-${index}`, product.fallback);
+                      e.target.src = product.fallback;
+                    }}
                   />
                 </motion.div>
               ))}
