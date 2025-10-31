@@ -1,41 +1,53 @@
 import React from "react";
 import { motion } from "framer-motion";
+import clsx from "clsx";
 
+/**
+ * SecondaryButton — elegant variant for secondary actions
+ */
 const SecondaryButton = ({
-  children,
-  icon: Icon,
-  onClick,
-  type = "button",
+  fullWidth = false,
+  loading = false,
   disabled = false,
   className = "",
+  children,
+  ...props
 }) => {
+  const baseClasses =
+    "relative inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm select-none overflow-hidden";
+
+  const styles = `
+    bg-[var(--color-secondary)]
+    text-white
+    hover:bg-[color-mix(in srgb,var(--color-secondary)_90%,black)]
+    focus:ring-[var(--color-secondary)]
+  `;
+
+  const width = fullWidth ? "w-full" : "";
+  const isDisabled = disabled || loading;
+
   return (
     <motion.button
-      whileHover={{ scale: 1.05, y: -1 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={`relative inline-flex items-center justify-center gap-2 px-6 py-3
-        font-medium text-[var(--color-text-primary)] text-base sm:text-lg
-        bg-white/70 backdrop-blur-xl border border-[var(--color-primary)]/20
-        rounded-2xl hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]
-        hover:bg-white shadow-md hover:shadow-[var(--color-primary)]/30
-        transition-all duration-300 ease-out
-        focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/20
-        disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden group
-        ${className}`}
+      type="button"
+      disabled={isDisabled}
+      whileHover={!isDisabled ? { scale: 1.05 } : {}}
+      whileTap={!isDisabled ? { scale: 0.97 } : {}}
+      className={clsx(
+        baseClasses,
+        styles,
+        width,
+        className,
+        isDisabled &&
+          "opacity-60 cursor-not-allowed transform-none shadow-none"
+      )}
+      {...props}
     >
-      {/* border glow effect */}
-      <span className="absolute inset-0 border-2 border-transparent group-hover:border-[var(--color-primary)]/40 rounded-2xl transition-all duration-500"></span>
-
-      <span className="relative flex items-center gap-2 z-10">
-        {Icon && <Icon className="w-5 h-5" />}
-        {children}
-      </span>
+      {loading && (
+        <span className="absolute left-4 inline-block w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>
+      )}
+      <span className={clsx(loading ? "opacity-70 ml-4" : "")}>{children}</span>
     </motion.button>
   );
 };
 
-export default SecondaryButton;
+export default React.memo(SecondaryButton);

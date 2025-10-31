@@ -1,41 +1,59 @@
+// components/ui/Button/AppButton.jsx
 import React from "react";
-import { motion } from "framer-motion";
+import { Button, CircularProgress, useTheme } from "@mui/material";
 
-const AppButton = ({
+const AppButton = React.forwardRef(({
   children,
-  icon: Icon,
-  onClick,
-  type = "button",
+  variant = "contained",
+  color = "primary",
+  loading = false,
   disabled = false,
+  startIcon,
+  endIcon,
+  size = "medium",
+  fullWidth = false,
   className = "",
-}) => {
+  ...props
+}, ref) => {
+  const theme = useTheme();
+
+  const buttonStyles = {
+    boxShadow: "none",
+    px: 2.5,
+    py: 1,
+    backgroundColor: variant === "contained" 
+      ? theme.palette[color].main 
+      : "transparent",
+    color: variant === "contained"
+      ? theme.palette.getContrastText(theme.palette[color].main)
+      : theme.palette[color].main,
+    "&:hover": {
+      boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+      backgroundColor: variant === "contained"
+        ? theme.palette[color].dark
+        : theme.palette.action.hover,
+    },
+  };
+
   return (
-    <motion.button
-      whileHover={{ scale: 1.05, y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={`relative inline-flex items-center justify-center gap-2 px-6 py-3
-        font-semibold text-white text-base sm:text-lg
-        bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]
-        rounded-2xl shadow-md shadow-[var(--color-primary)]/20
-        hover:shadow-lg hover:shadow-[var(--color-secondary)]/40
-        transition-all duration-300 ease-out
-        focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/30
-        disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden group
-        ${className}`}
+    <Button
+      ref={ref}
+      variant={variant}
+      color={color}
+      size={size}
+      startIcon={startIcon}
+      endIcon={endIcon}
+      disabled={disabled || loading}
+      fullWidth={fullWidth}
+      className={`rounded-xl font-medium capitalize transition-all duration-200 ${className}`}
+      sx={buttonStyles}
+      {...props}
     >
-      {/* subtle animated background on hover */}
-      <span className="absolute inset-0 bg-gradient-to-r from-[var(--color-secondary)] to-[var(--color-primary)] opacity-0 group-hover:opacity-100 blur-lg transition-all duration-500"></span>
-
-      <span className="relative flex items-center gap-2 z-10">
-        {Icon && <Icon className="w-5 h-5" />}
-        {children}
-      </span>
-    </motion.button>
+      {loading ? <CircularProgress size={20} color="inherit" /> : children}
+    </Button>
   );
-};
+});
 
-export default AppButton;
+AppButton.displayName = "AppButton";
+
+export default React.memo(AppButton);
