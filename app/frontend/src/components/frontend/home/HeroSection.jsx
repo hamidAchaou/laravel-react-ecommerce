@@ -162,10 +162,17 @@ const HeroSection = () => {
 
   return (
     <section 
-      className="min-h-screen bg-gradient-to-br from-brand-background via-white to-brand-accent/20 overflow-hidden"
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 overflow-hidden relative"
       aria-label="Hero section"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-24">
+      {/* Added Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-60 h-60 bg-blue-100 rounded-full opacity-50 blur-xl" />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-purple-100 rounded-full opacity-50 blur-xl" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-50 rounded-full opacity-30 blur-xl" />
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-24 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Content Section */}
           <motion.div
@@ -200,16 +207,16 @@ const HeroSection = () => {
             animate="visible" 
             className="relative"
           >
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-white to-brand-accent/10">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-white to-blue-50/50 border border-blue-100">
               <div className="aspect-square flex items-center justify-center relative">
                 <div 
-                  className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 via-brand-secondary/5 to-brand-accent/10" 
+                  className="absolute inset-0 bg-gradient-to-br from-blue-100/20 via-purple-100/20 to-pink-100/20" 
                   aria-hidden="true"
                 />
                 <img
                   src="https://picsum.photos/600/600?grayscale&blur=2"
                   alt="Fashion texture background"
-                  className="absolute inset-0 w-full h-full object-cover mix-blend-soft-light opacity-30"
+                  className="absolute inset-0 w-full h-full object-cover mix-blend-soft-light opacity-20"
                   loading="lazy"
                   onError={(event) => {
                     event.target.src = "https://picsum.photos/600/600?grayscale&blur=2";
